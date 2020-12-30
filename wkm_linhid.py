@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['btstp'] = 3
+    hp['btstp'] = 2
     hp['time'] = 600  # Tmax seconds
     hp['trsess'] = 20
     hp['evsess'] = 2

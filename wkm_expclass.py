@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'expand'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['btstp'] = 3
+    hp['btstp'] = 2
     hp['trsess'] = 20
     hp['evsess'] = 2
     hp['time'] = 600  # Tmax seconds

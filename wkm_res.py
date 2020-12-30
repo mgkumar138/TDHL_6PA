@@ -4,7 +4,7 @@ import time as dt
 
 if __name__ == '__main__':
 
-    hp = get_default_hp(task='wkm',platform='laptop')
+    hp = get_default_hp(task='wkm',platform='gpu')
 
     hp['controltype'] = 'reservoir'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
