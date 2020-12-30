@@ -171,9 +171,8 @@ if __name__ == '__main__':
     # datafile = glob.glob('./hyperparam/actfunc_*')[0]
     # [totlat, totdgr, totpi, stdlat, stddgr, stdpi] = saveload('load', datafile[:-7],1)
 
-    hp['exptname'] = 'taug_16pa_{}_{}_{}ha_{}lr_{}wkm_{}3fc_{}dt_b{}_{}'.format(
-        hp['task'], hp['controltype'], hp['hidact'], hp['lr'], hp['workmem'],
-        hp['c3fr'], hp['tstep'], hp['btstp'], dt.monotonic())
+    hp['exptname'] = 'taug_16pa_{}_{}_{}ha_{}lr_{}wkm_{}dt_b{}_{}'.format(
+        hp['task'], hp['controltype'], hp['hidact'], hp['lr'], hp['workmem'], hp['tstep'], hp['btstp'], dt.monotonic())
 
     totpi = np.zeros([len(totparams)])
     totdgr = np.zeros([len(totparams)])

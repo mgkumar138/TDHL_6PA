@@ -13,10 +13,10 @@ if __name__ == '__main__':
     hp['trsess'] = 20
     hp['evsess'] = 2
     hp['time'] = 600  # Tmax seconds
-    hp['savefig'] = False
+    hp['savefig'] = True
     hp['savevar'] = False
     hp['saveweight'] = False
-    hp['savegenvar'] = True
+    hp['savegenvar'] = False
 
     ''' Hidden parameters '''
     hp['nrnn'] = 8192  # number of hidden units

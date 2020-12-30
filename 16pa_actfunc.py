@@ -141,12 +141,12 @@ def main_script(hp):
 
 if __name__ == '__main__':
 
-    hp = get_default_hp(task='6pa', platform='server')
+    hp = get_default_hp(task='6pa', platform='laptop')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 101
-    hp['btstp'] = 24
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
@@ -167,9 +167,8 @@ if __name__ == '__main__':
     # datafile = glob.glob('./hyperparam/actfunc_*')[0]
     # [totlat, totdgr, totpi, stdlat, stddgr, stdpi] = saveload('load', datafile[:-7],1)
 
-    hp['exptname'] = 'actfunc_16pa_{}_{}_{}ha_{}lr_{}wkm_{}3fc_{}dt_b{}_{}'.format(
-        hp['task'], hp['controltype'], hp['hidact'], hp['lr'], hp['workmem'],
-        hp['c3fr'], hp['tstep'], hp['btstp'], dt.monotonic())
+    hp['exptname'] = 'actfunc_16pa_{}_{}_{}ha_{}lr_{}wkm_{}dt_b{}_{}'.format(
+        hp['task'], hp['controltype'], hp['hidact'], hp['lr'], hp['workmem'], hp['tstep'], hp['btstp'], dt.monotonic())
 
     totpi = np.zeros([len(tothidact)])
     totdgr = np.zeros([len(tothidact)])
