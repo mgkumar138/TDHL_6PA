@@ -12,7 +12,7 @@ if __name__ == '__main__':
     hp['btstp'] = 1
     hp['trsess'] = 20
     hp['evsess'] = 2
-    hp['time'] = 1  # Tmax seconds
+    hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
     hp['saveweight'] = False
