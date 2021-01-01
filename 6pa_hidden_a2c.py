@@ -44,7 +44,7 @@ class BackpropAgent:
         self.model = BackpropModel(hp)
         self.ac = action_cells(hp)
         self.memory = Memory()
-        self.opt = tf.optimizers.Adam(learning_rate=self.lr)
+        self.opt = tf.optimizers.RMSprop(learning_rate=self.lr)
         self.eb = hp['entbeta']
         self.va = hp['valalpha']
 
@@ -76,6 +76,10 @@ class BackpropAgent:
         actsel = np.random.choice(range(self.nact), p=action_prob_dist.numpy()[0])
         actdir = self.ac.aj[:,actsel]/self.tstep # constant speed 0.03
         self.action = (1-self.actalpha)*self.action + self.actalpha*actdir.numpy()
+
+        # actsel = np.argmax(tf.nn.softmax(q))
+        # actdir = self.ac.aj[:,actsel]/self.tstep # constant speed 0.03
+        # self.action = (1-self.actalpha)*self.action + self.actalpha*actdir.numpy()
 
         return state_cue_fb, r, q, c, actsel, self.action
 
@@ -163,7 +167,7 @@ class BackpropModel(tf.keras.Model):
             r = self.hidscale * tf.tile(inputs, [1, self.controltype])
         else:
             r = self.hidscale * self.controltype(inputs)
-        c = self.critic(r) #+ tf.random.normal(shape=(inputs.shape[0],self.ncri),stddev=self.crins)
+        c = self.critic(r) + tf.random.normal(shape=(inputs.shape[0],self.ncri),stddev=self.crins)
         q = self.actor(r) #+ tf.random.normal(shape=(inputs.shape[0],self.nact),stddev=self.actns)
         return r, q, c
 
@@ -197,6 +201,7 @@ def multiplepa_script(hp):
     totlat = np.zeros([btstp, (hp['trsess'] + hp['evsess'] * 3)])
     totdgr = np.zeros([btstp, 6])
     totpi = np.zeros_like(totdgr)
+    diffw = np.zeros([btstp, 2, 3])  # bt, number of layers, modelcopy
     scl = hp['trsess'] // 20  # scale number of sessions to Tse et al., 2007
 
     pool = mp.Pool(processes=hp['cpucount'])
@@ -205,7 +210,7 @@ def multiplepa_script(hp):
 
     # Start experiment
     for b in range(btstp):
-        totlat[b], totdgr[b], totpi[b], mvpath, trw = x[b]
+        totlat[b], totdgr[b], totpi[b], diffw[b], mvpath, allw, alldyn =  x[b]
 
     if latflag:
         allatency = np.mean(totlat,axis=2)
@@ -234,7 +239,7 @@ def multiplepa_script(hp):
     for i, k, j in zip(np.arange(4, 7), [mvpath[0], mvpath[1], mvpath[2]],
                              ['train', 'train', 'train']):
         plt.subplot(2, 3, i)
-        plt.title('PS {}'.format(i-3))
+        plt.title('{} steps {}'.format(j, len(k)))
         env.make(j)
         for pt in range(len(mvpath[2])):
             plt.plot(np.array(k[pt])[:, 0], np.array(k[pt])[:, 1], col[pt], alpha=0.5)
@@ -262,10 +267,9 @@ def multiplepa_script(hp):
             saveload('save', './wkm/Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.time()),
                      [totlat, totdgr, totpi, diffw])
 
-    return totlat, totdgr, totpi, mvpath, trw
+    return totlat, totdgr, totpi, diffw, mvpath, allw, alldyn
 
 ''' Feedforwad models'''
-
 
 def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None, nocue=None, noreward=None):
     lat = np.zeros(sessions)
@@ -301,13 +305,31 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
             state1, cue, reward, done, ds4r = env.step(action)
 
             if reward <= 0 and done:
-                reward = -1  # backprop agent needs negative reward to optimise weights
+                reward = -1
             elif reward > 0:
-                reward = reward*agent.tstep # continuous reward scaled by timestep for discretization
+                reward = reward*agent.tstep
+                #done = True
+
+            # if done:
+            #     if reward <= 0:
+            #         reward = -1
+            #     else:
+            #         reward = 1
 
             agent.memory.store(state=x, action=actsel,reward=reward)
 
             state = state1
+
+            # save lsm & actor dynamics for analysis
+            # if hp['savevar']:
+            #     if t in env.nort:
+            #         save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+            #         save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+            #         save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+            #         save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+            #         save_rdyn(rdyn, mtype, t, env.startpos, env.cue, rfr)
+            #     else:
+            #         wtrack.append([agent.dwc,agent.dwa])
 
             if done:
                 if t not in env.nort :
@@ -367,6 +389,7 @@ def main_multiplepa_expt(hp,b):
     env = Maze(hp)
     agent = BackpropAgent(hp=hp, env=env)
 
+
     print('Agent {} started training ...'.format(b))
     exptname = hp['exptname']
     print(exptname)
@@ -374,21 +397,59 @@ def main_multiplepa_expt(hp,b):
     # create environment
 
     trsess = hp['trsess']
+    evsess = int(trsess*.1)
 
     # Create nonrewarded probe trial index
     scl = trsess // 20  # scale number of sessions to Tse et al., 2007
     nonrp = [2 * scl, 9 * scl, 16 * scl]  # sessions that are non-rewarded probe trials
 
+    # store performance
+    lat = np.zeros(trsess + evsess * 3)
+    dgr = np.zeros(6)
+    diffw = np.zeros([2, 3])
+    pi = np.zeros_like(dgr)
+
     # Start experiment
+    rdyn = {}
+    qdyn = {}
+    cdyn = {}
+    tdyn = {}
+    wtrk = []
+    alldyn = [rdyn,qdyn,cdyn,tdyn, wtrk]
+    mvpath = np.zeros([6, 6, env.normax, 2])
     tf.compat.v1.reset_default_graph()
     start = dt.time()
 
     # Start Training
-    lat, mvpath, trw, dgr, pi = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
+    lat[:trsess], mvpath[:3], trw, dgr[:3], pi[:3] = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
+
+    # Start Evaluation
+    lat[trsess:trsess + evsess], mvpath[3], opaw, dgr[3], pi[3] = run_multiple_expt(b,'opa', env, hp,agent, alldyn, evsess, trw, noreward=[nonrp[0]])
+    lat[trsess + evsess:trsess + evsess * 2], mvpath[4],  npaw, dgr[4], pi[4] = run_multiple_expt(b,'npa', env, hp, agent, alldyn, evsess, trw, noreward=[nonrp[0]])
+    lat[trsess + evsess * 2:], mvpath[5], nmw, dgr[5], pi[5] = run_multiple_expt(b, 'nm', env, hp, agent, alldyn, evsess, trw, noreward=[nonrp[0]])
+
+    # Summarise weight change of layers
+    for i, k in enumerate([opaw, npaw, nmw]):
+        for j in np.arange(-2,0):
+            diffw[j, i] = np.sum(abs(k[j] - trw[j])) / np.size(k[j])
+
+    allw = [trw, opaw, npaw, nmw]
+
+    if dgr[4] > pithres:
+        npamarker = 1
+    else:
+        npamarker = 0
+
+    if hp['savevar']:
+        saveload('save', './6pa/Data/vars_npa{}_{}_{}'.format(npamarker, exptname, dt.time()),
+                 [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, diffw])
+    if hp['saveweight']:
+        saveload('save', './6pa/Data/weights_npa{}_{}_{}'.format(npamarker, exptname, dt.time()),
+                 [trw, opaw, npaw, nmw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
 
-    return lat, dgr, pi, mvpath, trw
+    return lat, dgr, pi, diffw, mvpath, allw, alldyn
 
 
 if __name__ == '__main__':
@@ -402,21 +463,25 @@ if __name__ == '__main__':
     hp['btstp'] = 10
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
+    hp['savevar'] = False
+    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
     hp['nhid'] = 8192  # number of hidden units
     hp['hidact'] = 'relu'
+    hp['K'] = None
+    hp['sparsity'] = 0
 
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
     hp['taug'] = 10000
     hp['eulerm'] = 1
-    hp['actalpha'] = 1/4 # smoothen action taken
+    hp['actalpha'] = 1/4
     hp['maxspeed'] = 0.07
 
-    hp['entbeta'] = 0.0001  # entropy coeff
-    hp['valalpha'] = 0.5 # value coeff
+    hp['entbeta'] = 0.0001  # banino 0.0001 - 0.00006, wang 0.05, me -0.01
+    hp['valalpha'] = 0.5  # banino 0.5, wang 0.05, me 0.5
 
     # First 30seconds: place cell activity & action update switched off, sensory cue given
     # After 30seconds: place cell activity & action update switched on, sensory cue silenced
