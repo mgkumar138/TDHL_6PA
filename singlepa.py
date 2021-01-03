@@ -255,7 +255,8 @@ def run_res_single_expt(b, mtype, env, hp, agent, alldyn, trials, useweight=None
         state, cue, reward, done = env.reset(trial=t)
         agent.ac.reset()
         agent.cri_reset()
-        rstate = rfr = agent.rstate
+        rstate = agent.rstate
+        rfr = agent.rstate
         value = agent.vstate
         rho = agent.ac.qstate
         wtrack = []

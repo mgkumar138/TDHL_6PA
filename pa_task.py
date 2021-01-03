@@ -243,7 +243,8 @@ def run_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
         state, cue, reward, done = env.reset(trial=t)
         agent.ac.reset()
         agent.cri_reset()
-        rstate = rfr = agent.rstate
+        rstate = agent.rstate
+        rfr = agent.rstate
         value = agent.vstate
         rho = agent.ac.qstate
         wtrack = []
@@ -547,7 +548,8 @@ def run_wkm_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, useweig
             agent.ac.reset()
             agent.cri_reset()
             mstate, mem = np.random.normal(size=[1, agent.nwm], scale=0.1), np.zeros([1, agent.nwm])
-            rstate = rfr = agent.rstate
+            rstate = agent.rstate
+            rfr = agent.rstate
             value = agent.vstate
             rho = agent.ac.qstate
             wtrack = []
@@ -856,7 +858,8 @@ def run_control_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, use
             agent.ac.reset()
             agent.cri_reset()
             wtrack = []
-            rstate = rfr = agent.rstate
+            rstate = agent.rstate
+            rfr = agent.rstate
             value = agent.vstate
             rho = agent.ac.qstate
 
