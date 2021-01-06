@@ -98,6 +98,8 @@ def plot_dgr(dgr,scl, pltidx, patype):
             ax.text(p.get_x(),  p.get_height()*1.05, '**', size=15)
         elif pv[i] < 0.05:
             ax.text(p.get_x(),  p.get_height()*1.05, '*', size=15)
+
+
 def plot_maps(alldyn,mvpath, hp, pltidx):
     qdyn = alldyn[1]
     cdyn = alldyn[2]
@@ -144,15 +146,14 @@ def plot_maps(alldyn,mvpath, hp, pltidx):
 
     plt.subplot(pltidx)
     im = plt.imshow(ccells.T,aspect='auto',origin='lower')
-    plt.title('{} value & policy maps'.format(list(qdyn.keys())[-1][6:9]))
+    plt.title('Session {} value & policy map'.format(list(qdyn.keys())[-1][7:9]))
     plt.ylabel('Y')
-    plt.ylabel('X')
+    plt.xlabel('X')
     plt.quiver(newx[:, 1], newx[:, 0], policy[1].reshape(bins ** 2), policy[0].reshape(bins ** 2),
                      units='xy',color='w')
     cbar = plt.colorbar(im, fraction=0.046, pad=0.04)
     cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
-    plt.axis(aspect='equal')
     plt.xticks([], [])
     plt.yticks([], [])
 
