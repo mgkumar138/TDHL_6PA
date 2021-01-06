@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import save_rdyn, find_cue, saveload, plot_dgr
+from utils import save_rdyn, find_cue, saveload, plot_dgr, plot_maps
 import time as dt
 from maze_env import Maze, TseMaze
 import multiprocessing as mp
@@ -67,6 +67,8 @@ def multiplepa_script(hp):
     plt.plot(np.mean(allatency,axis=0),linewidth=3)
 
     plot_dgr(totdgr, scl, 232, 6)
+
+    plot_maps(alldyn,mvpath, hp, 233)
 
     env = Maze(hp)
     env.make('train')
@@ -145,14 +147,13 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                                          cue_r1_fb=cue)
 
             # save lsm & actor dynamics for analysis
-            if hp['savevar']:
-                if t in env.nort:
-                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                else:
-                    wtrack.append([agent.dwc,agent.dwa])
+            if t in env.nort:
+                save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+            else:
+                wtrack.append([agent.dwc,agent.dwa])
 
             if done:
                 break
@@ -281,14 +282,13 @@ def run_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
                 rpe, value = agent.learn(s1=state, cue_r1_fb=np.concatenate([rho[0], value[0], cue]),plasticity=plastic,
                                   pre=rfr, post=rho, R=reward, v=value, h1=rstate)
             # save lsm & actor dynamics for analysis
-            if hp['savevar']:
-                if t in env.nort:
-                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                else:
-                    wtrack.append([agent.dwc,agent.dwa])
+            if t in env.nort:
+                save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+            else:
+                wtrack.append([agent.dwc,agent.dwa])
 
             if done:
                 break
@@ -427,15 +427,14 @@ def run_wkm_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
                                       pre=rfr, post=rho, R=reward, v=value, m1=mstate)
 
                 # save lsm & actor dynamics for analysis
-                if hp['savevar']:
-                    if t in env.nort:
-                        save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                        save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                        save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                        save_rdyn(alldyn[5], mtype, t, env.startpos, env.cue, mem)
-                        save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                    else:
-                        wtrack.append([agent.dwc,agent.dwa])
+                if t in env.nort:
+                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                    save_rdyn(alldyn[5], mtype, t, env.startpos, env.cue, mem)
+                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+                else:
+                    wtrack.append([agent.dwc,agent.dwa])
 
                 if done:
                     break
@@ -585,15 +584,14 @@ def run_wkm_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, useweig
                                              cue_r1_fb=np.concatenate([rho[0], value[0], mem[0], cue]), h1=[rstate, mstate])
 
                 # save lsm & actor dynamics for analysis
-                if hp['savevar']:
-                    if t in env.nort:
-                        save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                        save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                        save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                        save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                        save_rdyn(alldyn[5], mtype, t, env.startpos, env.cue, mem)
-                    else:
-                        wtrack.append([agent.dwc,agent.dwa])
+                if t in env.nort:
+                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+                    save_rdyn(alldyn[5], mtype, t, env.startpos, env.cue, mem)
+                else:
+                    wtrack.append([agent.dwc,agent.dwa])
 
                 if done:
                     break
@@ -740,14 +738,13 @@ def run_control_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, usewei
                                              cue_r1_fb=cue)
 
                 # save lsm & actor dynamics for analysis
-                if hp['savevar']:
-                    if t in env.nort:
-                        save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                        save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                        save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                        save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                    else:
-                        wtrack.append([agent.dwc,agent.dwa])
+                if t in env.nort:
+                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+                else:
+                    wtrack.append([agent.dwc,agent.dwa])
 
                 if done:
                     break
@@ -895,14 +892,13 @@ def run_control_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, use
                                              pre=rfr, post=rho, R=reward, v=value, h1=rstate)
 
                 # save lsm & actor dynamics for analysis
-                if hp['savevar']:
-                    if t in env.nort:
-                        save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-                        save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-                        save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-                        save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-                    else:
-                        wtrack.append([agent.dwc,agent.dwa])
+                if t in env.nort:
+                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+                else:
+                    wtrack.append([agent.dwc,agent.dwa])
 
                 if done:
                     break

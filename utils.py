@@ -98,6 +98,63 @@ def plot_dgr(dgr,scl, pltidx, patype):
             ax.text(p.get_x(),  p.get_height()*1.05, '**', size=15)
         elif pv[i] < 0.05:
             ax.text(p.get_x(),  p.get_height()*1.05, '*', size=15)
+def plot_maps(alldyn,mvpath, hp, pltidx):
+    qdyn = alldyn[1]
+    cdyn = alldyn[2]
+    nonrlen = 600
+    bins = 15
+    qfr = np.zeros([6, nonrlen, 40])
+    cfr = np.zeros([6, nonrlen, 1])
+    coord = np.zeros([nonrlen * 6, 2])
+    policy = np.zeros([2, bins, bins])
+    newx = np.zeros([225,2])
+    for i in range(15):
+        st = i * 15
+        ed = st + 15
+        newx[st:ed, 0] = np.arange(15)
+    for i in range(15):
+        st = i * 15
+        ed = st + 15
+        newx[st:ed, 1] = i * np.ones(15)
+
+    sess = [v for v in cdyn.keys() if v.startswith(list(qdyn.keys())[-1][:9])]
+    for s in sess:
+        c = int(s[-1])
+        qfr[c - 1] = np.array(qdyn[s])[-nonrlen:]
+        cfr[c - 1] = np.array(cdyn[s])[-nonrlen:]
+
+    qfr = np.reshape(qfr, newshape=(6 * nonrlen, 40))
+    cfr = np.reshape(cfr, newshape=(6 * nonrlen, 1))
+
+    for i, s in enumerate(sess):
+        st = i * nonrlen
+        ed = st + nonrlen
+        coord[st:ed] = mvpath[-1, i][-nonrlen:]
+
+    from model import action_cells
+    from scipy.stats import binned_statistic_2d
+    actor = action_cells(hp)
+    qpolicy = np.matmul(actor.aj, qfr.T)
+
+    policy[0] = binned_statistic_2d(coord[:, 0], coord[:, 1], qpolicy[0], bins=bins, statistic='sum')[0]
+    policy[1] = binned_statistic_2d(coord[:, 0], coord[:, 1], qpolicy[1], bins=bins, statistic='sum')[0]
+    ccells = binned_statistic_2d(coord[:, 0], coord[:, 1], cfr[:, 0], bins=bins, statistic='mean')[0]
+    policy = np.nan_to_num(policy)
+    ccells = np.nan_to_num(ccells)
+
+    plt.subplot(pltidx)
+    im = plt.imshow(ccells.T,aspect='auto',origin='lower')
+    plt.title('{} value & policy maps'.format(list(qdyn.keys())[-1][6:9]))
+    plt.ylabel('Y')
+    plt.ylabel('X')
+    plt.quiver(newx[:, 1], newx[:, 0], policy[1].reshape(bins ** 2), policy[0].reshape(bins ** 2),
+                     units='xy',color='w')
+    cbar = plt.colorbar(im, fraction=0.046, pad=0.04)
+    cbar.formatter.set_powerlimits((0, 0))
+    cbar.update_ticks()
+    plt.axis(aspect='equal')
+    plt.xticks([], [])
+    plt.yticks([], [])
 
 
 def find_cue(c):
