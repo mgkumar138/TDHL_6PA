@@ -142,10 +142,16 @@ class Maze:
             at = np.zeros_like(at)
         xt1 = self.x + at  # update new location
 
-        if ((np.sum((self.landmark - 0.1) < xt1,axis=1)==2)*(np.sum(xt1 < (self.landmark + 0.1),axis=1)==2)).any() \
-                and self.workmem:
-            xt1 -= at
-            R = self.punish
+        # if ((np.sum((self.landmark - 0.1) < xt1,axis=1)==2)*(np.sum(xt1 < (self.landmark + 0.1),axis=1)==2)).any() \
+        #         and self.workmem:
+        #     xt1 -= at
+        #     R = self.punish
+
+        if self.workmem:
+            for ldmk in self.landmark:
+                if np.linalg.norm(ldmk-xt1,2)<0.1:
+                    xt1 -= at
+                    R = self.punish
 
         ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
         if np.sum(ax)<4:
@@ -160,12 +166,22 @@ class Maze:
         if self.t in self.nort: # non-rewarded probe trial
             reward = 0
             # time spent = location within 0.1m near reward location with no overlap of other locations
-            if ((self.rloc - self.testrad) < xt1).all() and (xt1 < (self.rloc + self.testrad)).all():
+            # if ((self.rloc - self.testrad) < xt1).all() and (xt1 < (self.rloc + self.testrad)).all():
+            #     self.cordig += 1
+            #     self.totdig += 1
+
+            if np.linalg.norm(self.rloc - xt1, 2) < self.testrad:
                 self.cordig += 1
                 self.totdig += 1
-            elif ((np.sum((self.rlocs[self.mask] - self.testrad) < xt1,axis=1)==2)*
-                  (np.sum(xt1 < (self.rlocs[self.mask] + self.testrad),axis=1)==2)).any():
-                self.totdig += 1
+
+            # elif ((np.sum((self.rlocs[self.mask] - self.testrad) < xt1,axis=1)==2)*
+            #       (np.sum(xt1 < (self.rlocs[self.mask] + self.testrad),axis=1)==2)).any():
+            #     self.totdig += 1
+
+            for orl in self.rlocs[self.mask]:
+                if np.linalg.norm(orl-xt1,2)<self.testrad:
+                    self.totdig += 1
+
             if self.i == self.normax:
                 self.done = True
                 if self.mtype == 'train':
@@ -177,12 +193,20 @@ class Maze:
                         self.dgr = np.round(100 * self.cordig / (self.normax - self.workmemt), 5)
                     else:
                         self.dgr = np.round(100 * self.cordig / (self.normax), 5)
+
         elif self.t in self.noct: # non-cued trial
             reward = 0
             if self.i == self.normax:
                 self.done=True
         else:
-            if ((self.rloc - self.rrad) < xt1).all() and (xt1 < (self.rloc + self.rrad)).all() and self.stay is False:
+            # if ((self.rloc - self.rrad) < xt1).all() and (xt1 < (self.rloc + self.rrad)).all() and self.stay is False:
+            #     # if reach reward, r=1 at first instance
+            #     cue = self.cue
+            #     R = 1
+            #     self.stay = True
+            #     self.sessr +=1
+
+            if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
                 # if reach reward, r=1 at first instance
                 cue = self.cue
                 R = 1
@@ -223,10 +247,8 @@ class run_Rstep():
         self.taub = hp['taub']
         self.tstep = hp['tstep']
         self.totR = 0
-        self.countR = 0
-        self.startcount = False
-        self.totcount = 5*1000/hp['tstep']
-        self.fullR = (1-1e-5)*1/hp['tstep']
+        self.fullR = (1 - 1e-5) * 1/self.tstep
+        self.count = False
 
     def convR(self,rat, rbt):
         rat = (1 - (self.tstep / self.taua)) * rat
@@ -235,17 +257,15 @@ class run_Rstep():
         return rat, rbt, rt
 
     def step(self,R):
-        if R>0:
+        if R>0 and self.count is False:
             self.fullR = (1-1e-5)*R/self.tstep
-            self.startcount = True
-        if self.startcount:
-            self.countR += 1
+            self.count = True
         self.rat += R
         self.rbt += R
         self.rat, self.rbt, self.rt = self.convR(self.rat, self.rbt)
         self.totR += self.rt
         done = False
-        if self.countR >= self.totcount or self.totR>=self.fullR: # end after fullR reached or max 3 seconds
+        if self.totR>=self.fullR: # end after fullR reached or max 3 seconds
             done = True
         return self.rt, done
 
@@ -404,12 +424,12 @@ class MultiplePAs:
         if self.t in self.nort: # non-rewarded probe trial
             reward = 0
             # time spent = location within 0.1m near reward location with no overlap of other locations
-            if ((self.rloc - self.testrad) < xt1).all() and (xt1 < (self.rloc + self.testrad)).all():
+            if np.linalg.norm(self.rloc - xt1, 2) < self.testrad:
                 self.cordig += 1
                 self.totdig += 1
-            elif ((np.sum((self.rlocs[self.mask] - self.testrad) < xt1,axis=1)==2)*
-                  (np.sum(xt1 < (self.rlocs[self.mask] + self.testrad),axis=1)==2)).any():
-                self.totdig += 1
+            for orl in self.rlocs[self.mask]:
+                if np.linalg.norm(orl-xt1,2)<self.testrad:
+                    self.totdig += 1
             if self.i == self.normax:
                 self.done = True
                 self.dgr = 100 * self.cordig / (self.totdig + 1e-10)
@@ -418,11 +438,13 @@ class MultiplePAs:
             if self.i == self.normax:
                 self.done=True
         else:
-            if ((self.rloc - self.rrad) < xt1).all() and (xt1 < (self.rloc + self.rrad)).all() and self.stay is False:  # if hit reward, r=1
+            if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
+                # if reach reward, r=1 at first instance
                 cue = self.cue
                 R = 1
                 self.stay = True
                 self.sessr +=1
+
             reward, self.done = self.runR.step(R)
             if self.i >= self.maxstep:
                 self.done = True
@@ -555,10 +577,11 @@ class TseMaze:
             at = np.zeros_like(at)
         xt1 = self.x + at # update new location
 
-        if ((np.sum((self.landmark - 0.1) < xt1,axis=1)==2)*(np.sum(xt1 < (self.landmark + 0.1),axis=1)==2)).any() \
-                and self.workmem:
-            xt1 -= at
-            R = self.punish
+        if self.workmem:
+            for ldmk in self.landmark:
+                if np.linalg.norm(ldmk-xt1,2)<0.1:
+                    xt1 -= at
+                    R = self.punish
 
         if self.i>self.workmemt:
             ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
@@ -574,12 +597,13 @@ class TseMaze:
         if self.t in self.nort: # non-rewarded probe trial
             reward = 0
             # time spent = location within 0.1m near reward location with no overlap of other locations
-            if ((self.rloc - self.testrad) < xt1).all() and (xt1 < (self.rloc + self.testrad)).all():
+            if np.linalg.norm(self.rloc - xt1, 2) < self.testrad:
                 self.cordig += 1
                 self.totdig += 1
-            elif ((np.sum((self.rlocs[self.mask] - self.testrad) < xt1,axis=1)==2)*
-                  (np.sum(xt1 < (self.rlocs[self.mask] + self.testrad),axis=1)==2)).any():
-                self.totdig += 1
+            for orl in self.rlocs[self.mask]:
+                if np.linalg.norm(orl-xt1,2)<self.testrad:
+                    self.totdig += 1
+
             if self.i == self.normax:
                 self.done = True
                 if self.mtype == 'train':
@@ -594,10 +618,12 @@ class TseMaze:
             if self.i == self.normax:
                 self.done=True
         else:
-            if ((self.rloc - self.rrad) < xt1).all() and (xt1 < (self.rloc + self.rrad)).all() and self.stay is False:  # if hit reward, r=1
-                # cue = self.cue # present cue when reached target
+            if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
+                # if reach reward, r=1 at first instance
+                cue = self.cue
                 R = 1
                 self.stay = True
+                self.sessr +=1
 
             reward, self.done = self.runR.step(R)
             if self.i >= self.maxstep:

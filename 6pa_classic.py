@@ -9,8 +9,8 @@ if __name__ == '__main__':
     hp['controltype'] = 'classic'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 100
-    hp['btstp'] = 2
-    hp['time'] = 600  # Tmax seconds
+    hp['btstp'] = 1
+    hp['time'] = 300  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
     hp['saveweight'] = False
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     hp['hidact'] = False
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.001
+    hp['lr'] = 0.00001 # 0.001
     hp['eulerm'] = 1
 
     # First 30seconds: place cell activity & action update switched off, sensory cue given
