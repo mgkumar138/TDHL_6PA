@@ -1,12 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import save_rdyn, find_cue, saveload, plot_dgr
+from utils import save_rdyn, find_cue, saveload, plot_dgr, get_default_hp, plot_maps
 import time as dt
-import pandas as pd
 from maze_env import Maze
 import tensorflow as tf
 from model import choose_activation, place_cells, action_cells
-from utils import get_default_hp
 import multiprocessing as mp
 from functools import partial
 
@@ -34,7 +32,6 @@ class BackpropAgent:
         self.vscale = hp['vscale']
         self.calpha = hp['tstep']/hp['ctau']
         self.criact = choose_activation(hp['criact'],hp)
-        self.c3fr = hp['c3fr']
         self.eulerm = hp['eulerm']
         self.maxcritic = 0
         self.loss = 0
@@ -91,6 +88,7 @@ class BackpropAgent:
 
         grads = tape.gradient(total_loss, self.model.trainable_weights)
         self.opt.apply_gradients(zip(grads, self.model.trainable_weights)) # train parameters based on gradient
+        self.tderr = tf.reshape(total_loss, (1, 1))
 
         return policy_loss, value_loss, total_loss
 
@@ -167,7 +165,7 @@ class BackpropModel(tf.keras.Model):
             r = self.hidscale * tf.tile(inputs, [1, self.controltype])
         else:
             r = self.hidscale * self.controltype(inputs)
-        c = self.critic(r) + tf.random.normal(shape=(inputs.shape[0],self.ncri),stddev=self.crins)
+        c = self.critic(r) #+ tf.random.normal(shape=(inputs.shape[0],self.ncri),stddev=self.crins)
         q = self.actor(r) #+ tf.random.normal(shape=(inputs.shape[0],self.nact),stddev=self.actns)
         return r, q, c
 
@@ -198,10 +196,9 @@ def multiplepa_script(hp):
 
     # store performance
     latflag = False
-    totlat = np.zeros([btstp, (hp['trsess'] + hp['evsess'] * 3)])
-    totdgr = np.zeros([btstp, 6])
+    totlat = np.zeros([btstp, hp['trsess']])
+    totdgr = np.zeros([btstp, 3])
     totpi = np.zeros_like(totdgr)
-    diffw = np.zeros([btstp, 2, 3])  # bt, number of layers, modelcopy
     scl = hp['trsess'] // 20  # scale number of sessions to Tse et al., 2007
 
     pool = mp.Pool(processes=hp['cpucount'])
@@ -210,7 +207,7 @@ def multiplepa_script(hp):
 
     # Start experiment
     for b in range(btstp):
-        totlat[b], totdgr[b], totpi[b], diffw[b], mvpath, allw, alldyn =  x[b]
+        totlat[b], totdgr[b], totpi[b], trw, mvpath, alldyn =  x[b]
 
     if latflag:
         allatency = np.mean(totlat,axis=2)
@@ -227,11 +224,7 @@ def multiplepa_script(hp):
 
     plot_dgr(totdgr, scl, 232, 6)
 
-    plt.subplot(233)
-    df = pd.DataFrame(np.mean(diffw[:,-2:], axis=0), columns=['OPA', 'NPA', 'NM'], index=['Critic', 'Actor'])
-    ds = pd.DataFrame(np.std(diffw[:,-2:], axis=0), columns=['OPA', 'NPA', 'NM'], index=['Critic', 'Actor'])
-    df.plot.bar(rot=0, ax=plt.gca(), yerr=ds)
-    plt.title(np.round(np.mean(totpi,axis=0),1))
+    plot_maps(alldyn, mvpath, hp, 233)
 
     env = Maze(hp)
 
@@ -249,9 +242,6 @@ def multiplepa_script(hp):
 
     print(exptname)
 
-    npalearn = np.sum(totdgr[:,4]>pithres)/btstp
-    print('Percentage of both NPA learnt {} %'.format(np.round(npalearn,2)))
-
     plt.tight_layout()
 
     if hp['task'] == '6pa':
@@ -259,24 +249,21 @@ def multiplepa_script(hp):
             plt.savefig('./6pa/Fig/fig_{}.png'.format(exptname))
         if hp['savegenvar']:
             saveload('save', './6pa/Data/genvars_{}_b{}_{}'.format(exptname, btstp, dt.time()),
-                     [totlat, totdgr, totpi, diffw])
+                     [totlat, totdgr, totpi])
     else:
         if hp['savefig']:
             plt.savefig('./wkm/Fig/fig_{}.png'.format(exptname))
         if hp['savegenvar']:
             saveload('save', './wkm/Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.time()),
-                     [totlat, totdgr, totpi, diffw])
+                     [totlat, totdgr, totpi])
 
-    return totlat, totdgr, totpi, diffw, mvpath, allw, alldyn
+    return totlat, totdgr, totpi, trw, mvpath, alldyn
 
 ''' Feedforwad models'''
 
 def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None, nocue=None, noreward=None):
     lat = np.zeros(sessions)
-    if mtype=='train':
-        mvpath = np.zeros((3,6,env.normax,2))
-    else:
-        mvpath = np.zeros((6,env.normax,2))
+    mvpath = np.zeros((3,6,env.normax,2))
     dgr = []
     env.make(mtype=mtype, nocue=nocue, noreward=noreward)
 
@@ -299,7 +286,7 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                 env.render()
 
             # Pass coordinates to Place Cell & LCM to get actor & critic values
-            x, rfr, q, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
+            x, rfr, rho, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
 
             # Use action on environment, ds4r: distance from reward
             state1, cue, reward, done, ds4r = env.step(action)
@@ -308,47 +295,28 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                 reward = -1
             elif reward > 0:
                 reward = reward*agent.tstep
-                #done = True
-
-            # if done:
-            #     if reward <= 0:
-            #         reward = -1
-            #     else:
-            #         reward = 1
 
             agent.memory.store(state=x, action=actsel,reward=reward)
 
             state = state1
 
             # save lsm & actor dynamics for analysis
-            # if hp['savevar']:
-            #     if t in env.nort:
-            #         save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
-            #         save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
-            #         save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
-            #         save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
-            #         save_rdyn(rdyn, mtype, t, env.startpos, env.cue, rfr)
-            #     else:
-            #         wtrack.append([agent.dwc,agent.dwa])
+            if t in env.nort:
+                save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
 
             if done:
-                if t not in env.nort :
+                if t not in env.nort:
                     agent.replay()
                 break
 
         if t in env.nort:
             sesslat.append(np.nan)
-            if mtype == 'train':
-                sid = np.argmax(np.array(noreward) == (t // 6) + 1)
-                mvpath[sid, env.idx] = np.array(env.tracks)[:env.normax]
-            else:
-                mvpath[env.idx] = env.tracks[:env.normax]
-
-            if mtype == 'npa':
-                if (find_cue(env.cue) == np.array([7, 8])).any():
-                    dgr.append(env.dgr)
-            else:
-                dgr.append(env.dgr)
+            dgr.append(env.dgr)
+            sid = np.argmax(np.array(noreward) == (t // 6) + 1)
+            mvpath[sid, env.idx] = np.array(env.tracks)[:env.normax]
         else:
             sesslat.append(env.i)
             alldyn[4].append(np.sum(np.array(wtrack), axis=0))
@@ -367,18 +335,10 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                     mtype, (t + 1) // 6, sessions, lat[((t + 1) // 6) - 1], env.sessr))
 
     # get mean visit rate
-    if len(noreward) > 1:
-        # training session
-        sesspi = np.array(dgr) > pithres
-        sesspi = np.sum(np.array(sesspi).reshape(len(noreward), 6), axis=1)
-        dgr = np.mean(np.array(dgr).reshape(len(noreward), 6), axis=1)
-    else:
-        # evaluation sessions
-        sesspi = np.sum(np.array(dgr) > pithres)
-        dgr = np.mean(dgr)
-
+    sesspi = np.array(dgr) > pithres
+    sesspi = np.sum(np.array(sesspi).reshape(len(noreward), 6), axis=1)
+    dgr = np.mean(np.array(dgr).reshape(len(noreward), 6), axis=1)
     mdlw = agent.model.get_weights()
-
     if hp['platform'] == 'server':
         print('Agent {} {} training dig rate: {}'.format(b, mtype, dgr))
     return lat, mvpath, mdlw, dgr, sesspi
@@ -388,26 +348,16 @@ def main_multiplepa_expt(hp,b):
     import tensorflow as tf
     env = Maze(hp)
     agent = BackpropAgent(hp=hp, env=env)
-
-
     print('Agent {} started training ...'.format(b))
     exptname = hp['exptname']
     print(exptname)
 
     # create environment
-
     trsess = hp['trsess']
-    evsess = int(trsess*.1)
 
     # Create nonrewarded probe trial index
     scl = trsess // 20  # scale number of sessions to Tse et al., 2007
     nonrp = [2 * scl, 9 * scl, 16 * scl]  # sessions that are non-rewarded probe trials
-
-    # store performance
-    lat = np.zeros(trsess + evsess * 3)
-    dgr = np.zeros(6)
-    diffw = np.zeros([2, 3])
-    pi = np.zeros_like(dgr)
 
     # Start experiment
     rdyn = {}
@@ -416,53 +366,31 @@ def main_multiplepa_expt(hp,b):
     tdyn = {}
     wtrk = []
     alldyn = [rdyn,qdyn,cdyn,tdyn, wtrk]
-    mvpath = np.zeros([6, 6, env.normax, 2])
     tf.compat.v1.reset_default_graph()
     start = dt.time()
 
     # Start Training
-    lat[:trsess], mvpath[:3], trw, dgr[:3], pi[:3] = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
-
-    # Start Evaluation
-    lat[trsess:trsess + evsess], mvpath[3], opaw, dgr[3], pi[3] = run_multiple_expt(b,'opa', env, hp,agent, alldyn, evsess, trw, noreward=[nonrp[0]])
-    lat[trsess + evsess:trsess + evsess * 2], mvpath[4],  npaw, dgr[4], pi[4] = run_multiple_expt(b,'npa', env, hp, agent, alldyn, evsess, trw, noreward=[nonrp[0]])
-    lat[trsess + evsess * 2:], mvpath[5], nmw, dgr[5], pi[5] = run_multiple_expt(b, 'nm', env, hp, agent, alldyn, evsess, trw, noreward=[nonrp[0]])
-
-    # Summarise weight change of layers
-    for i, k in enumerate([opaw, npaw, nmw]):
-        for j in np.arange(-2,0):
-            diffw[j, i] = np.sum(abs(k[j] - trw[j])) / np.size(k[j])
-
-    allw = [trw, opaw, npaw, nmw]
-
-    if dgr[4] > pithres:
-        npamarker = 1
-    else:
-        npamarker = 0
+    lat, mvpath, trw, dgr, pi = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './6pa/Data/vars_npa{}_{}_{}'.format(npamarker, exptname, dt.time()),
-                 [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, diffw])
-    if hp['saveweight']:
-        saveload('save', './6pa/Data/weights_npa{}_{}_{}'.format(npamarker, exptname, dt.time()),
-                 [trw, opaw, npaw, nmw])
+        saveload('save', './6pa/Data/vars_{}_{}'.format(exptname, dt.time()),
+                 [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
 
-    return lat, dgr, pi, diffw, mvpath, allw, alldyn
+    return lat, dgr, pi, trw, mvpath, alldyn
 
 
 if __name__ == '__main__':
 
-    hp = get_default_hp(task='6pa',platform='server')
+    hp = get_default_hp(task='6pa',platform='laptop')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['trsess'] = 100
-    hp['evsess'] = 10
-    hp['btstp'] = 10
-    hp['time'] = 600  # Tmax seconds
-    hp['savefig'] = True
+    hp['trsess'] = 20
+    hp['btstp'] = 1
+    hp['time'] = 1  # Tmax seconds
+    hp['savefig'] = False
     hp['savevar'] = False
     hp['saveweight'] = False
     hp['savegenvar'] = False
@@ -492,4 +420,4 @@ if __name__ == '__main__':
     hp['exptname'] = 'A2C_{}tg_{}av_{}be_{}_{}_{}n_{}ha_{}lr_{}dt_b{}_{}'.format(hp['taug'],hp['valalpha'],hp['entbeta'],
         hp['task'], hp['controltype'],hp['nhid'], hp['hidact'],hp['lr'], hp['tstep'],hp['btstp'],dt.monotonic())
 
-    totlat, totdgr, totpi, diffw, mvpath, allw, alldyn = multiplepa_script(hp)
+    totlat, totdgr, totpi, trw, mvpath, alldyn = multiplepa_script(hp)
