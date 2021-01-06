@@ -142,11 +142,6 @@ class Maze:
             at = np.zeros_like(at)
         xt1 = self.x + at  # update new location
 
-        # if ((np.sum((self.landmark - 0.1) < xt1,axis=1)==2)*(np.sum(xt1 < (self.landmark + 0.1),axis=1)==2)).any() \
-        #         and self.workmem:
-        #     xt1 -= at
-        #     R = self.punish
-
         if self.workmem:
             for ldmk in self.landmark:
                 if np.linalg.norm(ldmk-xt1,2)<0.1:
@@ -165,19 +160,9 @@ class Maze:
 
         if self.t in self.nort: # non-rewarded probe trial
             reward = 0
-            # time spent = location within 0.1m near reward location with no overlap of other locations
-            # if ((self.rloc - self.testrad) < xt1).all() and (xt1 < (self.rloc + self.testrad)).all():
-            #     self.cordig += 1
-            #     self.totdig += 1
-
             if np.linalg.norm(self.rloc - xt1, 2) < self.testrad:
                 self.cordig += 1
                 self.totdig += 1
-
-            # elif ((np.sum((self.rlocs[self.mask] - self.testrad) < xt1,axis=1)==2)*
-            #       (np.sum(xt1 < (self.rlocs[self.mask] + self.testrad),axis=1)==2)).any():
-            #     self.totdig += 1
-
             for orl in self.rlocs[self.mask]:
                 if np.linalg.norm(orl-xt1,2)<self.testrad:
                     self.totdig += 1
@@ -199,12 +184,6 @@ class Maze:
             if self.i == self.normax:
                 self.done=True
         else:
-            # if ((self.rloc - self.rrad) < xt1).all() and (xt1 < (self.rloc + self.rrad)).all() and self.stay is False:
-            #     # if reach reward, r=1 at first instance
-            #     cue = self.cue
-            #     R = 1
-            #     self.stay = True
-            #     self.sessr +=1
 
             if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
                 # if reach reward, r=1 at first instance
