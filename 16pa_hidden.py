@@ -151,24 +151,23 @@ if __name__ == '__main__':
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
+    hp['npa'] = 16
 
     ''' Hidden parameters '''
-    hp['nhid'] = 8192  # number of hidden units
-    hp['hidact'] = 'relu'
-    hp['npa'] = 16
+    hp['nhid'] = 8192  # number of hidden units ~ Expansion ratio = nhid/67
+    hp['hidact'] = 'relu'  # relu threshold - relusparse, phi threshold - reluthres, relu - threshold = 0
+    hp['sparsity'] = 0  # Threshold
+    hp['K'] = None  # Number of positive connections from all inputs (67) to each hidden unit
+    hp['taug'] = 2000    # TD error time constant
 
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
 
-    # datafile = glob.glob('./hyperparam/actfunc_*')[0]
-    # [totlat, totdgr, totpi, stdlat, stddgr, stdpi] = saveload('load', datafile[:-7],1)
-
-    hp['exptname'] = 'actfunc_16pa_{}_{}_{}ha_{}lr_{}wkm_{}dt_b{}_{}'.format(
-        hp['task'], hp['controltype'], hp['hidact'], hp['lr'], hp['workmem'], hp['tstep'], hp['btstp'], dt.monotonic())
+    hp['exptname'] = '16pa_{}_{}_{}n_{}ha_{}th_{}k_{}tg_{}lr_{}dt_b{}_{}'.format(
+        hp['task'], hp['controltype'], hp['nhid'],hp['hidact'],  hp['sparsity'],hp['K'], hp['taug'],
+        hp['lr'], hp['tstep'], hp['btstp'], dt.monotonic())
 
     totlat, totdgr, totpi, mvpath = main_script(hp)
-
-    #saveload('save', '{}'.format(hp['exptname']), [totlat, totdgr, totpi])
 
     # plot
     f1, (ax1, ax11) = plt.subplots(1, 2)
@@ -190,4 +189,7 @@ if __name__ == '__main__':
 
     f1.tight_layout()
 
-    f1.savefig('16pa_hidden.png')
+    if hp['savefig']:
+        f1.savefig('./6pa/Fig/16pa_hidden.png')
+    if hp['savevar']:
+        saveload('save', './6pa/Data/{}'.format(hp['exptname']), [totlat, totdgr, totpi, mvpath])
