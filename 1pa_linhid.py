@@ -23,10 +23,6 @@ if __name__ == '__main__':
     ''' Other Model parameters '''
     hp['lr'] = 0.001  # 0.001
 
-    # First 30seconds: place cell activity & action update switched off, sensory cue given
-    # After 30seconds: place cell activity & action update switched on, sensory cue silenced
-    hp['workmem'] = False
-
     hp['render'] = False  # visualise movement trial by trial
 
     hp['exptname'] = '{}_{}_{}ha_{}e_{}lr_{}dt_b{}_{}'.format(
