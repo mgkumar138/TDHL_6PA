@@ -254,7 +254,7 @@ def get_default_hp(task, platform='laptop'):
         'ncri': 1,
         'criact': 'relu',
 
-        # Bump attractr parameters
+        # Bump attractor parameters
         'usebump': False,
         'nwm': 54,
         'bact': 'relu',

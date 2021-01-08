@@ -2,15 +2,14 @@ from pa_task import multiplepa_script
 import time as dt
 from utils import get_default_hp
 
-
 if __name__ == '__main__':
 
     hp = get_default_hp(task='6pa',platform='laptop')
 
     hp['controltype'] = 'expand'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['trsess'] = 500
-    hp['btstp'] = 1
+    hp['trsess'] = 100
+    hp['btstp'] = 3
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
@@ -22,12 +21,9 @@ if __name__ == '__main__':
     hp['hidact'] = False
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.000001 #0.00001
+    hp['lr'] = 0.00001  #0.00001
     hp['eulerm'] = 1
 
-    # First 30seconds: place cell activity & action update switched off, sensory cue given
-    # After 30seconds: place cell activity & action update switched on, sensory cue silenced
-    hp['workmem'] = False
     hp['render'] = False  # visualise movement trial by trial
 
     hp['exptname'] = '{}_{}_{}ha_{}e_{}lr_{}dt_b{}_{}'.format(

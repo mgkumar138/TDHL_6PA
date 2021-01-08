@@ -1,9 +1,6 @@
 from pa_task import multiplepa_script
 from utils import get_default_hp
 import time as dt
-import matplotlib
-import os
-
 
 if __name__ == '__main__':
 
@@ -11,7 +8,7 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'reservoir'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['btstp'] = 2
+    hp['btstp'] = 3
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
@@ -33,11 +30,6 @@ if __name__ == '__main__':
     hp['lr'] = 0.00001
     hp['eulerm'] = 1
 
-    hp['usebump'] = False
-
-    # First 30seconds: place cell activity & action update switched off, sensory cue given
-    # After 30seconds: place cell activity & action update switched on, sensory cue silenced
-    hp['workmem'] = False
     hp['render'] = False  # visualise movement trial by trial
 
     hp['exptname'] = '{}_{}_{}ha_{}e_{}lr_{}dt_b{}_{}'.format(
