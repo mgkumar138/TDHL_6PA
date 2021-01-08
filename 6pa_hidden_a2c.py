@@ -16,8 +16,7 @@ class BackpropAgent:
 
         ''' agent parameters '''
         self.taug = hp['taug']
-        self.beg = (1 - (self.tstep / self.taug))  # taur for backward euler continuous TD
-        self.feg = (1 + (self.tstep / self.taug))  # taur for forward euler continuous TD
+        self.beg = (1 - (self.tstep / self.taug))  # taug for euler backward approximation
         self.lr = hp['lr']
         self.npc = hp['npc']
         self.nact = hp['nact']
@@ -60,23 +59,11 @@ class BackpropAgent:
         ''' Predict next action '''
         r, q, c = self.model(tf.cast(state_cue_fb[None, :], dtype=tf.float32))
 
-        # Y = q + tf.matmul(self.ac.actact(self.ac.qstate), self.ac.wlat) + tf.random.normal(mean=0, stddev=self.ac.ns, shape=(1, self.nact), dtype=tf.float32)
-        # self.ac.qstate = (1 - self.ac.qalpha) * self.ac.qstate + self.ac.qalpha * Y
-        # rho = self.ac.actact(self.ac.qstate)
-        # action = tf.matmul(self.ac.aj, rho, transpose_b=True)/ self.nact
-        #
-        # atact = tf.matmul(action, self.ac.aj,transpose_a=True) # query, key
-        # actsel = np.argmax(atact)
-        # action = (self.ac.aj[:, actsel] / self.tstep).numpy()
-
+        # stochastic discrete action selection
         action_prob_dist = tf.nn.softmax(q)
         actsel = np.random.choice(range(self.nact), p=action_prob_dist.numpy()[0])
         actdir = self.ac.aj[:,actsel]/self.tstep # constant speed 0.03
         self.action = (1-self.actalpha)*self.action + self.actalpha*actdir.numpy()
-
-        # actsel = np.argmax(tf.nn.softmax(q))
-        # actdir = self.ac.aj[:,actsel]/self.tstep # constant speed 0.03
-        # self.action = (1-self.actalpha)*self.action + self.actalpha*actdir.numpy()
 
         return state_cue_fb, r, q, c, actsel, self.action
 
@@ -87,39 +74,37 @@ class BackpropAgent:
             policy_loss, value_loss, total_loss = self.compute_loss(self.memory, discount_reward)
 
         grads = tape.gradient(total_loss, self.model.trainable_weights)
-        self.opt.apply_gradients(zip(grads, self.model.trainable_weights)) # train parameters based on gradient
+        self.opt.apply_gradients(zip(grads, self.model.trainable_weights))
         self.tderr = tf.reshape(total_loss, (1, 1))
 
         return policy_loss, value_loss, total_loss
 
     def discount_normalise_rewards(self, rewards):
-        # determine discount rewards only when done. if not done. cumulative = critic_model.predict(new_state)
         discounted_rewards = []
         cumulative = 0
         for reward in rewards[::-1]:
             cumulative = reward + self.beg * cumulative
             discounted_rewards.append(cumulative)
-        discounted_rewards.reverse()  # need to normalise?
-        #discounted_rewards = (discounted_rewards - np.mean(discounted_rewards))/np.std(discounted_rewards)
+        discounted_rewards.reverse()
 
         return discounted_rewards
 
     def compute_loss(self, memory, discounted_rewards):
         _, logit, values = self.model(tf.convert_to_tensor(np.vstack(memory.states), dtype=tf.float32))
 
-        # distinguish AC to A2C. AC -> use only values/discounted rewards. Advantage = Q(s,a) - V(s)
+        # Advantage = Discounted R - V(s) = TD error
         advantage = tf.convert_to_tensor(np.array(discounted_rewards), dtype=tf.float32) - values[:,0]
 
         value_loss = advantage**2
 
-        # compute actor policy loss with critic input as advantage
-        neg_log_prob = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=np.array(memory.actions)) # Nx1 tensor
+        # compute actor policy loss
+        neg_log_prob = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=np.array(memory.actions))
+        policy_loss = neg_log_prob * tf.stop_gradient(advantage)
 
-        policy_loss = neg_log_prob * tf.stop_gradient(advantage) # becomes NxN tensor
-
+        # compute entropy & add negative to prevent faster convergence of actions & better initial exploration
         entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logit, labels=tf.nn.softmax(logit))
 
-        # merge both losses to train network tgt
+        # merge all losses to train network tgt
         comb_loss = tf.reduce_mean((self.va * value_loss + policy_loss + self.eb * entropy))
         self.loss = comb_loss
 
@@ -158,15 +143,14 @@ class BackpropModel(tf.keras.Model):
                                             use_bias=False, kernel_initializer='zeros', name='critic')
         self.actor = tf.keras.layers.Dense(units=self.nact, activation='linear',
                                            use_bias=False, kernel_initializer='zeros', name='actor')
-        #tf.keras.initializers.GlorotNormal()
 
     def call(self, inputs):
         if isinstance(self.controltype, int):
             r = self.hidscale * tf.tile(inputs, [1, self.controltype])
         else:
             r = self.hidscale * self.controltype(inputs)
-        c = self.critic(r) #+ tf.random.normal(shape=(inputs.shape[0],self.ncri),stddev=self.crins)
-        q = self.actor(r) #+ tf.random.normal(shape=(inputs.shape[0],self.nact),stddev=self.actns)
+        c = self.critic(r)
+        q = self.actor(r)
         return r, q, c
 
 
@@ -386,10 +370,10 @@ if __name__ == '__main__':
     hp = get_default_hp(task='6pa',platform='laptop')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
-    hp['tstep'] = 100  # deltat
-    hp['trsess'] = 20
+    hp['tstep'] = 100  # deltat = 100ms ** A2C algorithm tested only at dt = 100ms
+    hp['trsess'] = 60
     hp['btstp'] = 1
-    hp['time'] = 1  # Tmax seconds
+    hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
     hp['saveweight'] = False
@@ -404,16 +388,11 @@ if __name__ == '__main__':
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
     hp['taug'] = 10000
-    hp['eulerm'] = 1
     hp['actalpha'] = 1/4
-    hp['maxspeed'] = 0.07
+    hp['maxspeed'] = 0.07  # max step size per 100ms
 
-    hp['entbeta'] = 0.0001  # banino 0.0001 - 0.00006, wang 0.05, me -0.01
-    hp['valalpha'] = 0.5  # banino 0.5, wang 0.05, me 0.5
-
-    # First 30seconds: place cell activity & action update switched off, sensory cue given
-    # After 30seconds: place cell activity & action update switched on, sensory cue silenced
-    hp['workmem'] = False
+    hp['entbeta'] = 0.001  # 0.0001
+    hp['valalpha'] = 0.5
 
     hp['render'] = False  # visualise movement trial by trial
 
