@@ -211,13 +211,12 @@ def multiplepa_script(hp):
     plot_maps(alldyn, mvpath, hp, 233)
 
     env = Maze(hp)
+    env.make('train')
 
     col = ['b', 'g', 'r', 'y', 'm', 'k']
-    for i, k, j in zip(np.arange(4, 7), [mvpath[0], mvpath[1], mvpath[2]],
-                             ['train', 'train', 'train']):
+    for i, k in zip(np.arange(4, 7), [mvpath[0], mvpath[1], mvpath[2]]):
         plt.subplot(2, 3, i)
-        plt.title('{} steps {}'.format(j, len(k)))
-        env.make(j)
+        plt.title('PS{}'.format(i-3))
         for pt in range(len(mvpath[2])):
             plt.plot(np.array(k[pt])[:, 0], np.array(k[pt])[:, 1], col[pt], alpha=0.5)
             circle = plt.Circle(env.rlocs[pt], env.rrad, color=col[pt])
@@ -270,19 +269,17 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                 env.render()
 
             # Pass coordinates to Place Cell & LCM to get actor & critic values
-            x, rfr, rho, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
+            allstate, rfr, rho, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
 
             # Use action on environment, ds4r: distance from reward
-            state1, cue, reward, done, ds4r = env.step(action)
+            state, cue, reward, done, ds4r = env.step(action)
 
             if reward <= 0 and done:
                 reward = -1
             elif reward > 0:
                 reward = reward*agent.tstep
 
-            agent.memory.store(state=x, action=actsel,reward=reward)
-
-            state = state1
+            agent.memory.store(state=allstate, action=actsel,reward=reward)
 
             # save lsm & actor dynamics for analysis
             if t in env.nort:
@@ -367,14 +364,14 @@ def main_multiplepa_expt(hp,b):
 
 if __name__ == '__main__':
 
-    hp = get_default_hp(task='6pa',platform='laptop')
+    hp = get_default_hp(task='6pa',platform='server')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat = 100ms ** A2C algorithm tested only at dt = 100ms
-    hp['trsess'] = 60
-    hp['btstp'] = 1
+    hp['trsess'] = 100
+    hp['btstp'] = 10
     hp['time'] = 600  # Tmax seconds
-    hp['savefig'] = False
+    hp['savefig'] = True
     hp['savevar'] = False
     hp['saveweight'] = False
     hp['savegenvar'] = False
@@ -391,7 +388,7 @@ if __name__ == '__main__':
     hp['actalpha'] = 1/4
     hp['maxspeed'] = 0.07  # max step size per 100ms
 
-    hp['entbeta'] = 0.001  # 0.0001
+    hp['entbeta'] = -0.001  # 0.0001
     hp['valalpha'] = 0.5
 
     hp['render'] = False  # visualise movement trial by trial
