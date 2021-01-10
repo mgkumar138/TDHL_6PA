@@ -265,11 +265,11 @@ def run_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
 
             # plasticity using Forward euler
             if hp['eulerm'] == 1:
-                rpe, value = agent.learn(s1=state, cue_r1_fb=np.concatenate([rho[0], value[0], cue]),plasticity=plastic,
+                rpe, value = agent.learn(s1=state, cue_r1_fb=cue,plasticity=plastic,
                                   pre=rfr, post=rho, R=reward, v=value, h1=rstate)
 
             # Pass coordinates to Place Cell & LCM to get actor & critic values
-            q, rfr, rstate, _ = agent.act(state=state, cue_r_fb=np.concatenate([rho[0],value[0],cue]), rstate=rstate)
+            q, rfr, rstate, _ = agent.act(state=state, cue_r_fb=cue, rstate=rstate)
 
             # Convolve actor dynamics & Action selection
             action, rho = agent.ac.move(q)
@@ -279,7 +279,7 @@ def run_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
 
             # plasticity using Backward euler
             if hp['eulerm'] == 0:
-                rpe, value = agent.learn(s1=state, cue_r1_fb=np.concatenate([rho[0], value[0], cue]),plasticity=plastic,
+                rpe, value = agent.learn(s1=state, cue_r1_fb=cue,plasticity=plastic,
                                   pre=rfr, post=rho, R=reward, v=value, h1=rstate)
             # save lsm & actor dynamics for analysis
             if t in env.nort:
@@ -386,12 +386,15 @@ def run_wkm_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
         else:
             pellets = 3
 
+        # Reset Memory Dynamics
+        mstate, mem = np.random.normal(size=[1, agent.nwm], scale=0.1), np.zeros([1, agent.nwm])
+
         for p in range(pellets):
             state, cue, reward, done = env.reset(trial=t, pellet=p)
-            # Reset environment, actor dynamics
+
+            # Reset dynamics
             agent.ac.reset()
             agent.cri_reset()
-            mstate, mem = np.random.normal(size=[1, agent.nwm], scale=0.1), np.zeros([1, agent.nwm])
             wtrack = []
             value = agent.vstate
             rfr = agent.rstate
@@ -540,13 +543,15 @@ def run_wkm_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, useweig
         else:
             pellets = 3
 
+        # Reset memory dynamics
+        mstate, mem = np.random.normal(size=[1, agent.nwm], scale=0.1), np.zeros([1, agent.nwm])
+
         for p in range(pellets):
             state, cue, reward, done = env.reset(trial=t, pellet=p)
 
-            # Reset environment, actor dynamics
+            # Reset dynamics
             agent.ac.reset()
             agent.cri_reset()
-            mstate, mem = np.random.normal(size=[1, agent.nwm], scale=0.1), np.zeros([1, agent.nwm])
             rstate = agent.rstate
             rfr = agent.rstate
             value = agent.vstate
@@ -566,11 +571,11 @@ def run_wkm_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, useweig
                 # plasticity using Forward euler
                 if hp['eulerm'] == 1:
                     rpe, value = agent.learn(pre=rfr, post=rho, R=reward, v=value, plasticity=plastic, s1=state,
-                                             cue_r1_fb=np.concatenate([rho[0], value[0], mem[0], cue]), h1=[rstate, mstate])
+                                             cue_r1_fb=np.concatenate([mem[0], cue]), h1=[rstate, mstate])
 
                 # Pass coordinates to Place Cell & LCM to get actor & critic values
                 q, rfr, rstate, _, mem, mstate = agent.act(
-                    state=state, cue_r_fb=np.concatenate([rho[0], value[0], mem[0], cue]), rstate=[rstate, mstate])
+                    state=state, cue_r_fb=np.concatenate([mem[0], cue]), rstate=[rstate, mstate])
 
                 # Convolve actor dynamics & Action selection
                 action, rho = agent.ac.move(q)
@@ -581,7 +586,7 @@ def run_wkm_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, useweig
                 # plasticity using Backward euler
                 if hp['eulerm'] == 0:
                     rpe, value = agent.learn(pre=rfr, post=rho, R=reward, v=value, plasticity=plastic, s1=state,
-                                             cue_r1_fb=np.concatenate([rho[0], value[0], mem[0], cue]), h1=[rstate, mstate])
+                                             cue_r1_fb=np.concatenate([mem[0], cue]), h1=[rstate, mstate])
 
                 # save lsm & actor dynamics for analysis
                 if t in env.nort:
@@ -697,9 +702,8 @@ def run_control_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, usewei
 
         for p in range(pellets):
 
-            # Reset environment, actor dynamics
             state, cue, reward, done = env.reset(trial=t, pellet=p)
-            # print('s{}, t{}, p{}, state {}, cue {}'.format((t + 1) // 6, t, p, state, cue))
+            # Reset dynamics
             agent.ac.reset()
             agent.cri_reset()
             wtrack = []
@@ -849,9 +853,9 @@ def run_control_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, use
 
         for p in range(pellets):
 
-            # Reset environment, actor dynamics
             state, cue, reward, done = env.reset(trial=t, pellet=p)
-            # print('s{}, t{}, p{}, state {}, cue {}'.format((t + 1) // 6, t, p, state, cue))
+
+            # Reset dynamics
             agent.ac.reset()
             agent.cri_reset()
             wtrack = []
@@ -872,13 +876,13 @@ def run_control_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, use
 
                 # plasticity using Forward euler
                 if hp['eulerm'] == 1:
-                    rpe, value = agent.learn(s1=state, cue_r1_fb=np.concatenate([rho[0], value[0], cue]),
+                    rpe, value = agent.learn(s1=state, cue_r1_fb=cue,
                                              plasticity=plastic,
                                              pre=rfr, post=rho, R=reward, v=value, h1=rstate)
 
                 # Pass coordinates to Place Cell & LCM to get actor & critic values
                 q, rfr, rstate, _ = agent.act(
-                    state=state, cue_r_fb=np.concatenate([rho[0], value[0], cue]), rstate=rstate)
+                    state=state, cue_r_fb=cue, rstate=rstate)
 
                 # Convolve actor dynamics & Action selection
                 action, rho = agent.ac.move(q)
@@ -887,7 +891,7 @@ def run_control_res_multiple_expt(b, mtype, env,hp, agent, alldyn, sessions, use
                 state, cue, reward, done, ds4r = env.step(action)
 
                 if hp['eulerm'] == 0:
-                    rpe, value = agent.learn(s1=state, cue_r1_fb=np.concatenate([rho[0], value[0], cue]),
+                    rpe, value = agent.learn(s1=state, cue_r1_fb=cue,
                                              plasticity=plastic,
                                              pre=rfr, post=rho, R=reward, v=value, h1=rstate)
 

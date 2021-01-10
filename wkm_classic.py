@@ -34,7 +34,7 @@ if __name__ == '__main__':
     hp['workmem'] = True
     hp['render'] = False  # visualise movement trial by trial
 
-    hp['exptname'] = 'tse_{}_{}_{}ha_{}wkm_{}bump_{}e_{}v_{}lr_{}dt_b{}_{}'.format(
+    hp['exptname'] = 'memd_cue_tse_{}_{}_{}ha_{}wkm_{}bump_{}e_{}v_{}lr_{}dt_b{}_{}'.format(
         hp['task'], hp['controltype'],hp['hidact'],hp['workmem'],hp['usebump'], hp['eulerm'],hp['vscale'],
         hp['lr'], hp['tstep'],hp['btstp'],dt.monotonic())
 

@@ -274,10 +274,10 @@ def run_res_single_expt(b, mtype, env, hp, agent, alldyn, trials, useweight=None
             # plasticity using Forward euler
             if hp['eulerm'] == 1:
                 rpe, value = agent.learn(pre=rfr, post=rho, R=reward, v=value,plasticity=plastic,s1=state,
-                                         cue_r1_fb=np.concatenate([rho[0],value[0],cue]), h1=rstate)
+                                         cue_r1_fb=cue, h1=rstate)
 
             # Pass 2D coordinates to Place Cell & LCM with feedback to get actor & critic values
-            q, rfr, rstate, _ = agent.act(state=state, cue_r_fb=np.concatenate([rho[0],value[0],cue]), rstate=rstate)
+            q, rfr, rstate, _ = agent.act(state=state, cue_r_fb=cue, rstate=rstate)
 
             # Convolve actor dynamics & Action selection
             action, rho = agent.ac.move(q)
@@ -288,7 +288,7 @@ def run_res_single_expt(b, mtype, env, hp, agent, alldyn, trials, useweight=None
             # plasticity using Backward euler
             if hp['eulerm'] == 0:
                 rpe, value = agent.learn(pre=rfr, post=rho, R=reward, v=value,plasticity=plastic,s1=state,
-                                         cue_r1_fb=np.concatenate([rho[0],value[0],cue]), h1=rstate)
+                                         cue_r1_fb=cue, h1=rstate)
 
             # save lsm & actor dynamics for analysis
             if hp['savevar']:

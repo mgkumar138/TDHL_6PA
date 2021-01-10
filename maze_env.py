@@ -519,7 +519,10 @@ class TseMaze:
         self.x = self.startx.copy()
         self.idx = self.ridx[trial%self.totr]
         self.rloc = self.rlocs[self.idx]
-        self.cue = self.cues[self.idx]
+        if pellet == 0:
+            self.cue = self.cues[self.idx]
+        else:
+            self.cue = np.zeros_like(self.cues[self.idx]) # no odur cue presented for 2nd & 3rd pellet
         self.cueidx = np.argmax(self.cue)+1
         self.startcoord = self.x.copy()
         self.reward = 0
@@ -545,7 +548,7 @@ class TseMaze:
         R = 0
 
         if self.i>self.workmemt and self.workmem:
-            cue = np.zeros_like(self.cue)
+            cue = np.zeros_like(self.cue)  # cue not presented after startbox
         elif self.i<=self.workmemt and self.workmem:
             at = np.zeros_like(at)
             cue = self.cue # present cue during first 5 seconds, do not update state location

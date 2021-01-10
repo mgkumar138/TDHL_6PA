@@ -26,8 +26,8 @@ if __name__ == '__main__':
     hp['chaos'] = 1.5
     hp['cp'] = [1,1]
     hp['resns'] = 0.025
-    hp['fbsz'] = 41
-    hp['sparsity'] = 2
+    hp['fbsz'] = 0
+    hp['sparsity'] = 3
 
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
