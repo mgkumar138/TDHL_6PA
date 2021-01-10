@@ -294,7 +294,7 @@ def get_default_hp(task, platform='laptop'):
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
         hp['cpucount'] = 1
     elif hp['platform'] == 'server':
-        matplotlib.use('Qt5Agg')
+        matplotlib.use('Agg')
         hp['cpucount'] = mp.cpu_count()
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     elif hp['platform'] == 'gpu':

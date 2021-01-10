@@ -144,7 +144,7 @@ if __name__ == '__main__':
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 101
-    hp['btstp'] = 24
+    hp['btstp'] = 48
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
         totlat[n], totdgr[n], totpi[n], stdlat[n], stddgr[n], stdpi[n] = main_script(hp)
 
-        saveload('save', '{}'.format(hp['exptname']), [totlat, totdgr, totpi, stdlat, stddgr, stdpi])
+        saveload('save', './6pa/Data/{}'.format(hp['exptname']), [totlat, totdgr, totpi, stdlat, stddgr, stdpi])
 
     # plot
     f1, (ax1, ax11) = plt.subplots(1, 2, figsize=(8, 4))

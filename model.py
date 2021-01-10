@@ -315,7 +315,13 @@ def set_excitatory(matsize=(67,1024),K=int(67/2)):
     for i in range(matsize[1]):
         idx = np.random.choice(np.arange(matsize[0]), size=K, replace=False)
         mat[idx, i] = abs(mat[idx, i])
-    return mat
+    return normw(mat)
+
+def normw(w):
+    u = np.mean(w)
+    sig = np.std(w)
+    nw = (w-u)/sig
+    return nw
 
 
 def choose_activation(actname,hp=None):

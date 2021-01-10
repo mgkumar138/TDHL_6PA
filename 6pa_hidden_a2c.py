@@ -277,7 +277,8 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
             if reward <= 0 and done:
                 reward = -1
             elif reward > 0:
-                reward = reward*agent.tstep
+                reward = 1
+                done = True
 
             agent.memory.store(state=allstate, action=actsel,reward=reward)
 
