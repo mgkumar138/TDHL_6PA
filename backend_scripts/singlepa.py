@@ -69,9 +69,9 @@ def singlepa_script(hp):
         plt.axis((-env.au / 2, env.au / 2, -env.au / 2, env.au / 2))
 
     if hp['savefig']:
-        plt.savefig('./1pa/Fig/fig_{}.png'.format(exptname))
+        plt.savefig('./Fig/fig_{}.png'.format(exptname))
     if hp['savegenvar']:
-        saveload('save', './1pa/Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.monotonic()), [totlat, totdgr, diffw])
+        saveload('save', './Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.monotonic()), [totlat, totdgr, diffw])
     print(exptname)
 
     plt.tight_layout()

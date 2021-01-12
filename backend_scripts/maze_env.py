@@ -21,6 +21,7 @@ class Maze:
         self.rendercall = hp['render']
         self.bounpen = 0.01
         self.punish = 0  # no punishment
+        self.Rval = hp['Rval']
 
         ''' Define Reward location '''
         ncues = 18
@@ -188,7 +189,7 @@ class Maze:
             if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
                 # if reach reward, r=1 at first instance
                 cue = self.cue
-                R = 1
+                R = self.Rval
                 self.stay = True
                 self.sessr +=1
 
@@ -225,8 +226,9 @@ class run_Rstep():
         self.taua = hp['taua']
         self.taub = hp['taub']
         self.tstep = hp['tstep']
+        self.Rval = hp['Rval']
         self.totR = 0
-        self.fullR = (1 - 1e-5) * 1/self.tstep
+        self.fullR = (1 - 1e-4) * self.Rval/self.tstep
         self.count = False
 
     def convR(self,rat, rbt):
@@ -237,7 +239,7 @@ class run_Rstep():
 
     def step(self,R):
         if R>0 and self.count is False:
-            self.fullR = (1-1e-5)*R/self.tstep
+            self.fullR = (1-1e-4)*R/self.tstep
             self.count = True
         self.rat += R
         self.rbt += R
@@ -438,189 +440,5 @@ class MultiplePAs:
         if len(self.tracks)>1:
             trl = np.array(self.tracks)
             self.ax.plot(trl[:,0],trl[:,1],'k')
-        plt.show()
-        plt.pause(0.001)
-
-
-class TseMaze:
-    def __init__(self, hp):
-        ''' 6PA task with working memory '''
-        self.hp = hp
-        self.tstep = hp['tstep']
-        self.maxstep = hp['time']*(1000 // self.tstep) # Train max time, 1hr
-        self.workmem = hp['workmem']
-        self.workmemt = 5 * (1000 // self.tstep) # cue presentation time
-        self.normax = 60 * (1000 // self.tstep)  # Non-rewarded probe test max time 60s
-        if self.workmem:
-            self.normax += self.workmemt
-        self.au = 1.6
-        self.rrad = 0.03
-        self.testrad = 0.1
-        self.stay = False
-        self.rendercall = hp['render']
-        self.bounpen = 0.01
-        self.punish = 0 #-0.0001
-        self.totpellets = 3
-        self.pellet = 3
-
-        ''' Define Reward location '''
-        ncues = 18
-        sclf = 3 # gain for cue
-        self.smell = np.eye(ncues) * sclf
-        self.cue_size = self.smell.shape[1]
-        self.holoc = np.zeros([49,2])
-
-        ''' create dig sites '''
-        holes = np.linspace((-self.au / 2) + 0.2, (self.au / 2) - 0.2, 7)  # each reward location is 20 cm apart
-        i = 0
-        for x in holes[::-1]:
-            for y in holes:
-                self.holoc[i] = np.array([y, x])
-                i+=1
-
-        self.landmark = np.array([self.holoc[22],self.holoc[26]])
-
-        if self.rendercall:
-            plt.ion()
-            fig = plt.figure(figsize=(5, 5))
-            self.ax = fig.add_subplot(111)
-            self.ax.axis([-self.au/2,self.au/2,-self.au/2,self.au/2])
-
-    def make(self, mtype='opa', nocue=None, noreward=None):
-        self.mtype = mtype
-        if mtype =='train':
-            self.rlocs = np.array([self.holoc[8],self.holoc[13], self.holoc[18], self.holoc[30], self.holoc[35],self.holoc[40]])
-            self.cues = self.smell[:6]
-            self.totr = self.nr = 6
-        elif mtype == 'pre':
-            self.rlocs = np.array([self.holoc[13], self.holoc[18],self.holoc[30], self.holoc[13], self.holoc[18], self.holoc[30]])
-            self.cues =  np.concatenate([self.smell[1:4],self.smell[1:4]],axis=0)
-            self.totr = 6
-            self.nr = 3
-
-        self.noct = []
-        if nocue:
-            for i in nocue:
-                self.noct.append(np.arange((i-1)*self.totr, i*self.totr)) # 6 trials in a session
-            self.noct = np.array(self.noct).flatten().tolist()
-
-        self.nort = []
-        if noreward:
-            for i in noreward:
-                self.nort.append(np.arange((i-1)*self.totr, i*self.totr))
-            self.nort = np.array(self.nort).flatten().tolist()
-
-    def reset(self, trial,pellet):
-        if trial%self.totr == 0 and pellet == 0: # reset order of cues presented after 6 trials
-            self.ridx = np.random.choice(self.totr, self.totr, replace=False)
-            self.sessr = 0
-        if pellet == 0:
-            self.startx, self.startpos = randpos(self.au) # start at same box for 1st, 2md, 3rd pellet
-        self.x = self.startx.copy()
-        self.idx = self.ridx[trial%self.totr]
-        self.rloc = self.rlocs[self.idx]
-        if pellet == 0:
-            self.cue = self.cues[self.idx]
-        else:
-            self.cue = np.zeros_like(self.cues[self.idx]) # no odur cue presented for 2nd & 3rd pellet
-        self.cueidx = np.argmax(self.cue)+1
-        self.startcoord = self.x.copy()
-        self.reward = 0
-        self.done = False
-        self.i = 0
-        self.stay = False
-        self.tracks = []
-        self.tracks.append(self.x) # include start location
-        self.t = trial
-        self.cordig = 0
-        self.totdig = 0
-        self.dgr = 0
-        if trial in self.noct: self.cue = np.zeros_like(self.cue)
-        self.runR = run_Rstep(self.hp)
-        self.mask = list(np.arange(self.totr))
-        self.mask.remove(self.idx)
-        self.d2r = np.zeros(self.totr)
-        self.wrongrlocs = []
-        return self.x, self.cue, self.reward, self.done
-
-    def step(self, at):
-        self.i+=1
-        R = 0
-
-        if self.i>self.workmemt and self.workmem:
-            cue = np.zeros_like(self.cue)  # cue not presented after startbox
-        elif self.i<=self.workmemt and self.workmem:
-            at = np.zeros_like(at)
-            cue = self.cue # present cue during first 5 seconds, do not update state location
-        else:
-            cue = self.cue # present cue when workmem == n
-
-        if self.stay:
-            at = np.zeros_like(at)
-        xt1 = self.x + at # update new location
-
-        if self.workmem:
-            for ldmk in self.landmark:
-                if np.linalg.norm(ldmk-xt1,2)<0.1:
-                    xt1 -= at
-                    R = self.punish
-
-        if self.i>self.workmemt:
-            ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
-            if np.sum(ax)<4:
-                R = self.punish
-                if np.argmin(ax)>1: # if hit right or top, bounce back by 0.01
-                    xt1 -= at
-                    xt1 += self.bounpen*(ax[2:]-1)
-                elif np.argmin(ax)<=1: # if hit left or bottom, bounce back by 0.01
-                    xt1 -= at
-                    xt1 -= self.bounpen*(ax[:2]-1)
-
-        if self.t in self.nort: # non-rewarded probe trial
-            reward = 0
-            # time spent = location within 0.1m near reward location with no overlap of other locations
-            if np.linalg.norm(self.rloc - xt1, 2) < self.testrad:
-                self.cordig += 1
-                self.totdig += 1
-            for orl in self.rlocs[self.mask]:
-                if np.linalg.norm(orl-xt1,2)<self.testrad:
-                    self.totdig += 1
-
-            if self.i == self.normax:
-                self.done = True
-                if self.mtype == 'train':
-                    self.dgr = 100 * self.cordig / (self.totdig + 1e-10)
-                else:
-                    if self.workmem:
-                        self.dgr = np.round(100 * self.cordig / (self.normax - self.workmemt), 5)
-                    else:
-                        self.dgr = np.round(100 * self.cordig / (self.normax), 5)
-        elif self.t in self.noct: # non-cued trial
-            reward = 0
-            if self.i == self.normax:
-                self.done=True
-        else:
-            if np.linalg.norm(self.rloc - xt1, 2) < self.rrad and self.stay is False:
-                # if reach reward, r=1 at first instance
-                cue = self.cue
-                R = 1
-                self.stay = True
-                self.sessr +=1
-
-            reward, self.done = self.runR.step(R)
-            if self.i >= self.maxstep:
-                self.done = True
-                self.sessr = len(np.unique(self.wrongrlocs))
-
-        self.tracks.append(xt1)
-        distr = np.linalg.norm(xt1-self.rloc,2) # eucledian distance away from reward location
-        self.x = xt1
-
-        return self.x, cue, reward, self.done, distr
-
-    def render(self):
-        if len(self.tracks)>1:
-            trl = np.array(self.tracks)
-            self.ax.plot(trl[-3:,0],trl[-3:,1],'k')
         plt.show()
         plt.pause(0.001)

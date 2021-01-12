@@ -9,16 +9,16 @@ import matplotlib
 import os
 import multiprocessing as mp
 
+
 def savefigformats(imname, fig=None):
-    data_path = 'C:\\Users\\Razer\\PycharmProjects\\multiple_pa_td\\Data&Fig\\'
-    #data_path = 'D:/TD_HL/1pa/Data/'
     if fig is None:
         fig = [plt.gcf()]
     for f in fig:
-        f.savefig('{}.png'.format(data_path + imname))
-        f.savefig('{}.pdf'.format(data_path+imname))
-        f.savefig('{}.svg'.format(data_path + imname))
-        f.savefig('{}.eps'.format(data_path + imname))
+        f.savefig('{}.png'.format(imname))
+        f.savefig('{}.pdf'.format(imname))
+        f.savefig('{}.svg'.format(imname))
+        f.savefig('{}.eps'.format(imname))
+
 
 def saveload(opt, name, variblelist):
     name = name + '.pickle'
@@ -165,7 +165,6 @@ def find_cue(c):
     return cue
 
 
-
 def multipage(filename, figs=None, dpi=200):
     pp = PdfPages(filename)
     if figs is None:
@@ -173,7 +172,6 @@ def multipage(filename, figs=None, dpi=200):
     for fig in figs:
         fig.savefig(pp, format='pdf')
     pp.close()
-
 
 
 def save_rdyn(rdyn, mtype,t,startpos,cue, rfr):
@@ -185,7 +183,6 @@ def save_rdyn(rdyn, mtype,t,startpos,cue, rfr):
         rdyn['{}_s{}_t{}_st{}_c{}'.format(mtype, (t // 6) + 1, t, startpos[0], find_cue(cue))].append(rfr.numpy()[0])
 
 
-
 def get_default_hp(task, platform='laptop'):
     if task =='1pa':
         nhid = 1024
@@ -193,19 +190,21 @@ def get_default_hp(task, platform='laptop'):
         trsess = 10
         evsess = 10
         workmem = False
+        Rval = 1
     elif task == '6pa':
         nhid = 8192
         time = 600
         trsess = 100
         evsess = int(trsess*.1)
         workmem = False
+        Rval = 1
     elif task == 'wkm':
         nhid = 8192
         time = 600
         trsess = 20
         evsess = int(trsess*.1)
         workmem = True
-
+        Rval = 4
 
     hp = {
         # Environment parameters
@@ -221,6 +220,7 @@ def get_default_hp(task, platform='laptop'):
         'taua': 250,
         'taub': 120,
         'npa': 6,
+        'Rval': Rval,
 
         # input parameters
         'npc': 7,
@@ -241,7 +241,7 @@ def get_default_hp(task, platform='laptop'):
         'alat': True,
         'actns': 0.25,
         'qtau': 150,
-        'maxspeed': 0.03, #0.015, # meter/second 0.036
+        'maxspeed': 0.03,
         'actorw-': -1,
         'actorw+': 1,
         'actorpsi': 20,

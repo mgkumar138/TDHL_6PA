@@ -9,11 +9,10 @@ if __name__ == '__main__':
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 100
-    hp['btstp'] = 3
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
     hp['eulerm'] = 1  # Forward Euler approx for TD error
-    hp['taug'] = 2000
+    hp['taug'] = 2000  # TD error time constant
 
     hp['render'] = False  # visualise movement trial by trial
 

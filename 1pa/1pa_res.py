@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     ''' Hidden parameters '''
     hp['nhid'] = 1024  # number of hidden units
-    hp['hidact'] = 'relusparse'
+    hp['hidact'] = 'phia'
     hp['sparsity'] = 3
     hp['resrecact'] = 'tanh'
     hp['rtau'] = 150

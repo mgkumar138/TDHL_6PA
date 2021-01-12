@@ -8,16 +8,16 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'reservoir'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
+    hp['trsess'] = 100
     hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
     hp['nhid'] = 8192  # number of hidden units
-    hp['hidact'] = 'relusparse'
+    hp['hidact'] = 'phia'
     hp['sparsity'] = 3
     hp['resrecact'] = 'tanh'
     hp['rtau'] = 150

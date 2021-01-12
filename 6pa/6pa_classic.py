@@ -9,11 +9,10 @@ if __name__ == '__main__':
     hp['controltype'] = 'classic'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 100
-    hp['btstp'] = 3
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''

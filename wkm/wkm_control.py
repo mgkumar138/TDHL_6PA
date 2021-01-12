@@ -8,13 +8,12 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['btstp'] = 2
+    hp['btstp'] = 1
     hp['trsess'] = 20
     hp['evsess'] = 2
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
@@ -27,16 +26,15 @@ if __name__ == '__main__':
 
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
-    hp['vscale'] = 1
 
-    # First 30seconds: place cell activity & action update switched off, sensory cue given
-    # After 30seconds: place cell activity & action update switched on, sensory cue silenced
+    # First 5 seconds: place cell activity & action update switched off, sensory cue given
+    # After 5 seconds: place cell activity & action update switched on, sensory cue silenced
     hp['workmem'] = True
 
     hp['render'] = False  # visualise movement trial by trial
 
-    hp['exptname'] = 'memd_cue_tse_control_{}_{}_{}ha_{}wkm_{}bump_{}e_{}v_{}lr_{}dt_b{}_{}'.format(
-        hp['task'], hp['controltype'],hp['hidact'],hp['workmem'],hp['usebump'], hp['eulerm'],hp['vscale'],
+    hp['exptname'] = 'control_{}_{}_{}ha_{}wkm_{}bump_{}e_{}R_{}lr_{}dt_b{}_{}'.format(
+        hp['task'], hp['controltype'],hp['hidact'],hp['workmem'],hp['usebump'], hp['eulerm'],hp['Rval'],
         hp['lr'], hp['tstep'],hp['btstp'],dt.monotonic())
 
     totlat, totdgr, totpi, mvpath, allw, alldyn = multiplepa_script(hp)

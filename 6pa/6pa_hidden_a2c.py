@@ -193,18 +193,11 @@ def multiplepa_script(hp):
     for b in range(btstp):
         totlat[b], totdgr[b], totpi[b], trw, mvpath, alldyn =  x[b]
 
-    if latflag:
-        allatency = np.mean(totlat,axis=2)
-        firstlatency = np.mean(totlat[:,:,:,0],axis=2)
-    else:
-        firstlatency = allatency = totlat
-
     plt.figure(figsize=(15, 8))
     plt.gcf().text(0.01, 0.01, exptname, fontsize=10)
     plt.subplot(231)
     plt.title('Latency')
-    plt.errorbar(x=np.arange(firstlatency.shape[1]), y =np.mean(firstlatency, axis=0), yerr=np.std(firstlatency,axis=0))
-    plt.plot(np.mean(allatency,axis=0),linewidth=3)
+    plt.errorbar(x=np.arange(totlat.shape[1]), y =np.mean(totlat, axis=0), yerr=np.std(totlat,axis=0))
 
     plot_dgr(totdgr, scl, 232, 6)
 
@@ -227,18 +220,11 @@ def multiplepa_script(hp):
 
     plt.tight_layout()
 
-    if hp['task'] == '6pa':
-        if hp['savefig']:
-            plt.savefig('./6pa/Fig/fig_{}.png'.format(exptname))
-        if hp['savegenvar']:
-            saveload('save', './6pa/Data/genvars_{}_b{}_{}'.format(exptname, btstp, dt.time()),
-                     [totlat, totdgr, totpi])
-    else:
-        if hp['savefig']:
-            plt.savefig('./wkm/Fig/fig_{}.png'.format(exptname))
-        if hp['savegenvar']:
-            saveload('save', './wkm/Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.time()),
-                     [totlat, totdgr, totpi])
+    if hp['savefig']:
+        plt.savefig('./Fig/fig_{}.png'.format(exptname))
+    if hp['savegenvar']:
+        saveload('save', './Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.time()),
+                 [totlat, totdgr, totpi])
 
     return totlat, totdgr, totpi, trw, mvpath, alldyn
 
@@ -275,9 +261,9 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
             state, cue, reward, done, ds4r = env.step(action)
 
             if reward <= 0 and done:
-                reward = -1
+                reward = -1 # if reward location not reached, penalise agent
             elif reward > 0:
-                reward = 1
+                reward = 1  # once reward location reached, terminate trial
                 done = True
 
             agent.memory.store(state=allstate, action=actsel,reward=reward)
@@ -355,7 +341,7 @@ def main_multiplepa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './6pa/Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -364,17 +350,22 @@ def main_multiplepa_expt(hp,b):
 
 
 if __name__ == '__main__':
-
-    hp = get_default_hp(task='6pa',platform='server')
+    '''
+    2D state information is passed to place cells and concatenated with cue. 
+    Agent has a nonlinear hidden layer whose activity is passed to the actor and critic.
+    State is continuous while action is discrete.
+    Training of weights is by backpropagation of error signals to determine the gradients.
+    Loss function is defined using the Advantage Actor Critic (A2C) algorithm.
+    '''
+    hp = get_default_hp(task='6pa',platform='laptop')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat = 100ms ** A2C algorithm tested only at dt = 100ms
     hp['trsess'] = 100
-    hp['btstp'] = 10
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
@@ -386,10 +377,10 @@ if __name__ == '__main__':
     ''' Other Model parameters '''
     hp['lr'] = 0.00001
     hp['taug'] = 10000
-    hp['actalpha'] = 1/4
-    hp['maxspeed'] = 0.07  # max step size per 100ms
+    hp['actalpha'] = 1/4  # to smoothen action taken by agent
+    hp['maxspeed'] = 0.07  # step size per 100ms
 
-    hp['entbeta'] = -0.001  # 0.0001
+    hp['entbeta'] = -0.001
     hp['valalpha'] = 0.5
 
     hp['render'] = False  # visualise movement trial by trial

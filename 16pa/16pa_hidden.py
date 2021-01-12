@@ -150,12 +150,12 @@ if __name__ == '__main__':
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
-    hp['npa'] = 16
+    hp['npa'] = 16  # learn 16 PAs
 
     ''' Hidden parameters '''
     hp['nhid'] = 8192  # number of hidden units ~ Expansion ratio = nhid/67
-    hp['hidact'] = 'relu'  # relu threshold - relusparse, phi threshold - reluthres, relu - threshold = 0
-    hp['sparsity'] = 0  # Threshold
+    hp['hidact'] = 'phia'  # phiA, phiB, relu, etc
+    hp['sparsity'] = 3  # Threshold
     hp['K'] = None  # Number of positive connections from all inputs (67) to each hidden unit
     hp['taug'] = 2000    # TD error time constant
 
@@ -189,6 +189,6 @@ if __name__ == '__main__':
     f1.tight_layout()
 
     if hp['savefig']:
-        f1.savefig('./6pa/Fig/16pa_hidden.png')
+        f1.savefig('16pa_hidden.png')
     if hp['savevar']:
-        saveload('save', './6pa/Data/{}'.format(hp['exptname']), [totlat, totdgr, totpi, mvpath])
+        saveload('save', hp['exptname'], [totlat, totdgr, totpi, mvpath])

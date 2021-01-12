@@ -149,8 +149,8 @@ class RNNCell(tf.keras.layers.Layer):
         # w_rec *= (np.eye(nrnn) == 0)  # remove self recurrence
         self.wrnn = np.concatenate((w_in, w_rec * hp['chaos']), axis=0)  # add gain parameter to recurrent weights
 
-        #w,v = np.linalg.eig(w_rec* lambda_chaos)
-        #spectralradius = np.max(abs(w)) # compute spectral radius
+        # w,v = np.linalg.eig(w_rec* lambda_chaos)
+        # spectralradius = np.max(abs(w)) # compute spectral radius
 
     @property
     def state_size(self):
@@ -172,7 +172,7 @@ class RNNCell(tf.keras.layers.Layer):
         self.built = True
 
     def call(self, inputs, state):
-        """ Reservoir without bias: membrane potential = old + (Win * input) + act( Wrec * state) + (Wfb * z)"""
+        """ Reservoir without bias: membrane potential = old + act(Win * input +  Wrec * state + Wfb * z)"""
 
         resinput = tf.matmul(tf.concat([inputs, self.resrecact(state[0])], 1), self.rkernel)
 
@@ -296,7 +296,7 @@ def bump_activation(x):
     return g01 + g1
 
 
-def reluthres(x, threshold=0):
+def phi_b(x, threshold=0):
     g1 = x * tf.cast(tf.keras.backend.greater(x, threshold), tf.float32)
     g0 = threshold * tf.cast(tf.keras.backend.less_equal(x, threshold), tf.float32)
     return g0 + g1
@@ -344,7 +344,7 @@ def choose_activation(actname,hp=None):
     elif actname == 'leakyrelu':
         act = tf.nn.leaky_relu
     elif actname == 'ReExp':
-        def ReExp(x, A=2, B=2, threshold=0, max_value=None):  # 200Hz
+        def ReExp(x, A=2, B=2, threshold=0, max_value=None):
             return tf.keras.activations.relu(A * tf.exp(B * x) - A, alpha=0, max_value=max_value, threshold=threshold)
         act = ReExp
     elif actname == 'pois':
@@ -354,26 +354,22 @@ def choose_activation(actname,hp=None):
         act = InhomPois
     elif actname == 'bump':
         act = bump_activation
-    elif actname == 'reluthres':
-        def reluthres(x, threshold=hp['sparsity']):
+    elif actname == 'phib':
+        def phi_b(x, threshold=hp['sparsity']):
             g1 = x * tf.cast(tf.keras.backend.greater(x, threshold), tf.float32)
             g0 = threshold * tf.cast(tf.keras.backend.less_equal(x, threshold), tf.float32)
             return g0 + g1
-        act = reluthres
+        act = phi_b
     elif actname == 'hevi':
         def heviside(x, threshold=hp['sparsity']):
             return 1 * tf.cast(tf.keras.backend.greater(x, threshold), tf.float32)
         act = heviside
     elif actname == 'relu1':
         act = tf.keras.layers.ReLU(max_value=1,negative_slope=0,threshold=0)
-    elif actname == 'relusparse':
+    elif actname == 'phia':
         act = tf.keras.layers.ReLU(max_value=None, negative_slope=0, threshold=hp['sparsity'])
     elif actname == 'softmax':
         act = tf.nn.softmax
-    elif actname == 'reluminus':
-        def reluminus(x, threshold=hp['sparsity']):
-            return tf.nn.relu(x-threshold) + threshold
-        act = reluminus
     else:
         act = no_activation
     return act
@@ -470,7 +466,6 @@ class BumpCell(tf.keras.layers.Layer):
         self.brecact = choose_activation(hp['brecact'],hp)
         self.bact = choose_activation(hp['bact'],hp)
         cueinput = hp['cuesize']
-        train_input = None
 
         ''' win weight init'''
         # loading weights for each cue to 3 bump units
@@ -485,7 +480,7 @@ class BumpCell(tf.keras.layers.Layer):
         f = np.exp(hp['bumppsi'] * np.cos(thetadiff))
         norm = np.sum(f, axis=0)[0]
         wbump = (hp['bumpw-'] / self.nbump) + hp['bumpw+'] * f / norm
-        self.wbump = np.concatenate((w_in, wbump), axis=0)  # add gain parameter to recurrent weights
+        self.wbump = np.concatenate((w_in, wbump), axis=0)
 
     @property
     def state_size(self):

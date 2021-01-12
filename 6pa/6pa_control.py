@@ -9,11 +9,10 @@ if __name__ == '__main__':
     hp['controltype'] = 'control'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 100
-    hp['btstp'] = 2
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
-    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     hp['hidact'] = False
 
     ''' Other Model parameters '''
-    hp['lr'] = 0  # 0
+    hp['lr'] = 0  # 0 classical agent with no plasticity
     hp['eulerm'] = 1
 
     hp['render'] = False  # visualise movement trial by trial
