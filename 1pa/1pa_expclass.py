@@ -12,6 +12,7 @@ if __name__ == '__main__':
     hp['time'] = 300  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
+    hp['saveweight'] = False
     hp['savegenvar'] = False
 
     ''' Hidden parameters '''
