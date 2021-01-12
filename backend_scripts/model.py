@@ -735,3 +735,166 @@ class BumpLSMmodel(tf.keras.Model):
         m, mh = self.wm(inputs[:, :, -self.cuesz:], initial_state=tf.cast(states[1],dtype=tf.float32))
 
         return r, h, q, c, m, mh
+
+
+class BackpropAgent:
+    def __init__(self, hp, env):
+        ''' environment parameters '''
+        self.env = env
+        self.tstep = hp['tstep']
+
+        ''' agent parameters '''
+        self.taug = hp['taug']
+        self.beg = (1 - (self.tstep / self.taug))  # taug for euler backward approximation
+        self.lr = hp['lr']
+        self.npc = hp['npc']
+        self.nact = hp['nact']
+        self.workmem = hp['workmem']
+        self.rstate = tf.zeros([1,hp['nhid']])
+        self.action = np.zeros(2)
+        self.actalpha = hp['actalpha']
+
+        ''' critic parameters '''
+        self.ncri = hp['ncri']
+        self.vstate = tf.zeros([1, self.ncri])
+        self.vscale = hp['vscale']
+        self.calpha = hp['tstep']/hp['ctau']
+        self.criact = choose_activation(hp['criact'],hp)
+        self.eulerm = hp['eulerm']
+        self.maxcritic = 0
+        self.loss = 0
+
+        ''' Setup model: Place cell --> Action cells '''
+        self.pc = place_cells(hp)
+        self.model = BackpropModel(hp)
+        self.ac = action_cells(hp)
+        self.memory = Memory()
+        self.opt = tf.optimizers.RMSprop(learning_rate=self.lr)
+        self.eb = hp['entbeta']
+        self.va = hp['valalpha']
+
+    def act(self, state, cue_r_fb):
+        s = self.pc.sense(state)  # convert coordinate info to place cell activity
+        state_cue_fb = np.concatenate([s, cue_r_fb])  # combine all inputs
+
+        if self.workmem and self.env.i <= self.env.workmemt:
+            # silence state presentation during cue presentation
+            state_cue_fb[:self.npc ** 2] = 0
+
+        if self.env.done:
+            # silence all inputs after trial ends
+            state_cue_fb = np.zeros_like(state_cue_fb)
+
+        ''' Predict next action '''
+        r, q, c = self.model(tf.cast(state_cue_fb[None, :], dtype=tf.float32))
+
+        # stochastic discrete action selection
+        action_prob_dist = tf.nn.softmax(q)
+        actsel = np.random.choice(range(self.nact), p=action_prob_dist.numpy()[0])
+        actdir = self.ac.aj[:,actsel]/self.tstep # constant speed 0.03
+        self.action = (1-self.actalpha)*self.action + self.actalpha*actdir.numpy()
+
+        return state_cue_fb, r, q, c, actsel, self.action
+
+    def replay(self):
+        discount_reward = self.discount_normalise_rewards(self.memory.rewards)
+
+        with tf.GradientTape() as tape:
+            policy_loss, value_loss, total_loss = self.compute_loss(self.memory, discount_reward)
+
+        grads = tape.gradient(total_loss, self.model.trainable_weights)
+        self.opt.apply_gradients(zip(grads, self.model.trainable_weights))
+        self.tderr = tf.reshape(total_loss, (1, 1))
+
+        return policy_loss, value_loss, total_loss
+
+    def discount_normalise_rewards(self, rewards):
+        discounted_rewards = []
+        cumulative = 0
+        for reward in rewards[::-1]:
+            cumulative = reward + self.beg * cumulative
+            discounted_rewards.append(cumulative)
+        discounted_rewards.reverse()
+
+        return discounted_rewards
+
+    def compute_loss(self, memory, discounted_rewards):
+        _, logit, values = self.model(tf.convert_to_tensor(np.vstack(memory.states), dtype=tf.float32))
+
+        # Advantage = Discounted R - V(s) = TD error
+        advantage = tf.convert_to_tensor(np.array(discounted_rewards), dtype=tf.float32) - values[:,0]
+
+        value_loss = advantage**2
+
+        # compute actor policy loss
+        neg_log_prob = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=np.array(memory.actions))
+        policy_loss = neg_log_prob * tf.stop_gradient(advantage)
+
+        # compute entropy & add negative to prevent faster convergence of actions & better initial exploration
+        entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logit, labels=tf.nn.softmax(logit))
+
+        # merge all losses to train network tgt
+        comb_loss = tf.reduce_mean((self.va * value_loss + policy_loss + self.eb * entropy))
+        self.loss = comb_loss
+
+        return policy_loss, value_loss, comb_loss
+
+    def cri_reset(self):
+        self.vstate = tf.zeros([1, self.ncri])
+
+
+class BackpropModel(tf.keras.Model):
+    def __init__(self, hp):
+        super(BackpropModel, self).__init__()
+        self.nact = hp['nact']
+        self.ncri = hp['ncri']
+        self.nhid = hp['nhid']
+        self.npc = hp['npc']
+        self.hidscale = hp['hidscale']
+        self.crins = np.sqrt(hp['ctau']/hp['tstep']) * hp['crins']
+        self.actns = np.sqrt(hp['ctau'] / hp['tstep']) * hp['actns']
+        self.hidact = hp['hidact']
+        self.hidscale = hp['hidscale']
+
+        if hp['controltype'] == 'expand':
+            self.controltype = (self.nhid // (self.npc ** 2 + hp['cuesize'])) + 1  # tile factor 16 (1024) or 80 (8192)
+
+        elif hp['controltype'] == 'hidden':
+            self.controltype = tf.keras.layers.Dense(units=self.nhid,
+                                                     activation=choose_activation(self.hidact, hp),
+                                                     use_bias=False, name='hidden',
+                                                     kernel_initializer=
+                                                     tf.keras.initializers.RandomUniform(minval=-1, maxval=1, seed=None))
+        else:
+            self.controltype = choose_activation(self.hidact,hp)
+
+        self.critic = tf.keras.layers.Dense(units=self.ncri, activation='linear',
+                                            use_bias=False, kernel_initializer='zeros', name='critic')
+        self.actor = tf.keras.layers.Dense(units=self.nact, activation='linear',
+                                           use_bias=False, kernel_initializer='zeros', name='actor')
+
+    def call(self, inputs):
+        if isinstance(self.controltype, int):
+            r = self.hidscale * tf.tile(inputs, [1, self.controltype])
+        else:
+            r = self.hidscale * self.controltype(inputs)
+        c = self.critic(r)
+        q = self.actor(r)
+        return r, q, c
+
+
+class Memory:
+    def __init__(self):
+        self.states = []
+        self.actions = []
+        self.rewards = []
+
+    def store(self, state, action, reward):
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+
+    def clear(self):
+        self.states = []
+        self.actions = []
+        self.rewards = []

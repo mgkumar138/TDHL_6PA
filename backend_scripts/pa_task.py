@@ -31,6 +31,8 @@ def multiplepa_script(hp):
     elif hp['usebump'] is False:
         if hp['controltype'] == 'reservoir':
             x = pool.map(partial(main_res_multiplepa_expt, hp), np.arange(btstp))
+        elif hp['exptname'][:3] == 'A2C':
+            x = pool.map(partial(main_A2C_6pa_expt, hp), np.arange(btstp))
         else:
             x = pool.map(partial(main_multiplepa_expt, hp),np.arange(btstp))
     else:
@@ -48,12 +50,11 @@ def multiplepa_script(hp):
     plt.gcf().text(0.01, 0.01, exptname, fontsize=10)
     plt.subplot(231)
     plt.title('Latency')
-    plt.errorbar(x=np.arange(totlat.shape[1]), y =np.mean(totlat, axis=0), yerr=np.std(totlat,axis=0), marker='s')
-    #plt.plot(np.mean(totlat,axis=0),linewidth=3)
+    plt.errorbar(x=np.arange(totlat.shape[1]), y =np.mean(totlat, axis=0), yerr=np.std(totlat,axis=0))
 
     plot_dgr(totdgr, scl, 232, 6)
 
-    plot_maps(alldyn,mvpath, hp, 233)
+    plot_maps(alldyn, mvpath, hp, 233)
 
     env = Maze(hp)
     env.make('train')
@@ -351,6 +352,129 @@ def main_res_multiplepa_expt(hp,b):
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
 
     return lat, dgr, pi, mvpath, trw, alldyn
+
+
+''' Feedforward Trained by backprop '''
+
+def run_A2C_6pa_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None, nocue=None, noreward=None):
+    lat = np.zeros(sessions)
+    mvpath = np.zeros((3,6,env.normax,2))
+    dgr = []
+    env.make(mtype=mtype, nocue=nocue, noreward=noreward)
+
+    if useweight:
+        agent.model.set_weights(useweight)
+
+    for t in range(sessions*6):
+        # Reset environment, actor dynamics
+        state, cue, reward, done = env.reset(trial=t)
+        agent.ac.reset()
+        agent.cri_reset()
+        wtrack = []
+        agent.memory.clear()
+
+        if t%6==0:
+            sesslat = []
+
+        while not done:
+            if env.rendercall:
+                env.render()
+
+            # Pass coordinates to Place Cell & LCM to get actor & critic values
+            allstate, rfr, rho, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
+
+            # Use action on environment, ds4r: distance from reward
+            state, cue, reward, done, ds4r = env.step(action)
+
+            if reward <= 0 and done:
+                reward = -1 # if reward location not reached, penalise agent
+            elif reward > 0:
+                reward = 1  # once reward location reached, terminate trial
+                done = True
+
+            agent.memory.store(state=allstate, action=actsel,reward=reward)
+
+            # save lsm & actor dynamics for analysis
+            if t in env.nort:
+                save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+
+            if done:
+                if t not in env.nort:
+                    agent.replay()
+                break
+
+        if t in env.nort:
+            sesslat.append(np.nan)
+            dgr.append(env.dgr)
+            sid = np.argmax(np.array(noreward) == (t // 6) + 1)
+            mvpath[sid, env.idx] = np.array(env.tracks)[:env.normax]
+        else:
+            sesslat.append(env.i)
+            alldyn[4].append(np.sum(np.array(wtrack), axis=0))
+
+        if (t + 1) % 6 == 0:
+            lat[((t + 1) // 6) - 1] = np.mean(sesslat)
+
+        if hp['platform'] == 'laptop' or b == 0:
+            # Trial information
+            print('T {} | C {} | S {} | TD {:4.3f} | D {:4.3f} | st {} | Dgr {} | mlen {}'.format(
+                t, find_cue(env.cue), env.i // (1000 // env.tstep), agent.loss, ds4r, env.startpos[0], np.round(dgr,1), len(agent.memory.rewards)))
+
+            # Session information
+            if (t + 1) % 6 == 0:
+                print('################## {} Session {}/{}, Avg Steps {:5.1f}, PI {} ################'.format(
+                    mtype, (t + 1) // 6, sessions, lat[((t + 1) // 6) - 1], env.sessr))
+
+    # get mean visit rate
+    sesspi = np.array(dgr) > pithres
+    sesspi = np.sum(np.array(sesspi).reshape(len(noreward), 6), axis=1)
+    dgr = np.mean(np.array(dgr).reshape(len(noreward), 6), axis=1)
+    mdlw = agent.model.get_weights()
+    if hp['platform'] == 'server':
+        print('Agent {} {} training dig rate: {}'.format(b, mtype, dgr))
+    return lat, mvpath, mdlw, dgr, sesspi
+
+
+def main_A2C_6pa_expt(hp,b):
+    import tensorflow as tf
+    from backend_scripts.model import  BackpropAgent
+    env = Maze(hp)
+    agent = BackpropAgent(hp=hp, env=env)
+    print('Agent {} started training ...'.format(b))
+    exptname = hp['exptname']
+    print(exptname)
+
+    # create environment
+    trsess = hp['trsess']
+
+    # Create nonrewarded probe trial index
+    scl = trsess // 20  # scale number of sessions to Tse et al., 2007
+    nonrp = [2 * scl, 9 * scl, 16 * scl]  # sessions that are non-rewarded probe trials
+
+    # Start experiment
+    rdyn = {}
+    qdyn = {}
+    cdyn = {}
+    tdyn = {}
+    wtrk = []
+    alldyn = [rdyn,qdyn,cdyn,tdyn, wtrk]
+    tf.compat.v1.reset_default_graph()
+    start = dt.time()
+
+    # Start Training
+    lat, mvpath, trw, dgr, pi = run_A2C_6pa_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
+
+    if hp['savevar']:
+        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+                 [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
+
+    print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
+
+    return lat, dgr, pi, mvpath, trw,  alldyn
+
 
 ''' Working memory tasks with bump attractor '''
 
