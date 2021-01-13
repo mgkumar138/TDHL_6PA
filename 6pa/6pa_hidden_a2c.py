@@ -30,7 +30,7 @@ if __name__ == '__main__':
     hp['sparsity'] = 3
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.000035
+    hp['lr'] = 0.00003
     hp['taug'] = 10000
     hp['actalpha'] = 1/4  # to smoothen action taken by agent
     hp['maxspeed'] = 0.07  # step size per 100ms

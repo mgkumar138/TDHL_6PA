@@ -130,13 +130,16 @@ class Maze:
         if self.i>self.workmemt and self.workmem:
             # silence cue during movement in working memory task
             cue = np.zeros_like(self.cue)
+            boundflag = True
         elif self.i<=self.workmemt and self.workmem:
             # present cue during first 5 seconds, do not update agent location
             at = np.zeros_like(at)
             cue = self.cue
+            boundflag = False
         else:
             # present cue at all time steps when not working memory task
             cue = self.cue
+            boundflag = True
 
         if self.stay:
             # stay at reward location if reached target
@@ -149,7 +152,7 @@ class Maze:
                     xt1 -= at
                     R = self.punish
 
-        if self.i>self.workmemt and self.workmem:
+        if boundflag:
             ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
             if np.sum(ax)<4:
                 R = self.punish
