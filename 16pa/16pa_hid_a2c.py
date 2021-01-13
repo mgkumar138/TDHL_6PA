@@ -113,6 +113,7 @@ def multiplepa_script(hp, b):
 
 def main_script(hp):
     print('Number of PA: {}, Activation function used: {}'.format(hp['npa'], hp['hidact']))
+    print(hp['exptname'])
     btstp = hp['btstp']
 
     pool = mp.Pool(processes=hp['cpucount'])
@@ -152,7 +153,7 @@ if __name__ == '__main__':
     hp['taug'] = 10000    # TD error time constant
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.00001
+    hp['lr'] = 0.000035
     hp['actalpha'] = 1/4  # to smoothen action taken by agent
     hp['maxspeed'] = 0.07  # step size per 100ms
     hp['entbeta'] = -0.001
@@ -166,6 +167,7 @@ if __name__ == '__main__':
 
     # plot
     f1, (ax1, ax11) = plt.subplots(1, 2)
+    f1.text(0.01, 0.01, hp['exptname'], fontsize=10)
     ax1.errorbar(x=np.arange(1,1+hp['trsess']),y=np.mean(totlat*hp['tstep']/1000,axis=0), yerr=np.std(totlat*hp['tstep']/1000,axis=0))
     ax1.set_title('16 PA latency')
     ax1.set_xlabel('Sessions')
@@ -185,6 +187,6 @@ if __name__ == '__main__':
     f1.tight_layout()
 
     if hp['savefig']:
-        f1.savefig('./Fig/16pa_hid_A2C.png')
+        f1.savefig('./Fig/{}.png'.format(hp['exptname']))
     if hp['savevar']:
-        saveload('save', './Data/'.format(hp['exptname']), [totlat, totdgr, totpi, mvpath])
+        saveload('save', './Data/{}'.format(hp['exptname']), [totlat, totdgr, totpi, mvpath])

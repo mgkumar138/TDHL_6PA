@@ -170,6 +170,7 @@ if __name__ == '__main__':
 
     # plot
     f1, (ax1, ax11) = plt.subplots(1, 2)
+    f1.text(0.01, 0.01, hp['exptname'], fontsize=10)
     ax1.errorbar(x=np.arange(1,1+hp['trsess']),y=np.mean(totlat*hp['tstep']/1000,axis=0), yerr=np.std(totlat*hp['tstep']/1000,axis=0))
     ax1.set_title('16 PA latency')
     ax1.set_xlabel('Sessions')
@@ -189,6 +190,6 @@ if __name__ == '__main__':
     f1.tight_layout()
 
     if hp['savefig']:
-        f1.savefig('16pa_hidden.png')
+        f1.savefig('./Fig/{}.png'.format(hp['exptname']))
     if hp['savevar']:
-        saveload('save', hp['exptname'], [totlat, totdgr, totpi, mvpath])
+        saveload('save', './Data/{}'.format(hp['exptname']), [totlat, totdgr, totpi, mvpath])
