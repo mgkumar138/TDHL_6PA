@@ -149,15 +149,16 @@ class Maze:
                     xt1 -= at
                     R = self.punish
 
-        ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
-        if np.sum(ax)<4:
-            R = self.punish
-            if np.argmin(ax)>1: # if hit right or top, bounce back by 0.01
-                xt1 -=at
-                xt1 += self.bounpen*(ax[2:]-1)
-            elif np.argmin(ax)<=1: # if hit left or bottom, bounce back by 0.01
-                xt1 -=at
-                xt1 -= self.bounpen*(ax[:2]-1)
+        if self.i>self.workmemt and self.workmem:
+            ax = np.concatenate([(-self.au / 2 < xt1), (self.au / 2 > xt1)]) # -xy,+xy
+            if np.sum(ax)<4:
+                R = self.punish
+                if np.argmin(ax)>1: # if hit right or top, bounce back by 0.01
+                    xt1 -=at
+                    xt1 += self.bounpen*(ax[2:]-1)
+                elif np.argmin(ax)<=1: # if hit left or bottom, bounce back by 0.01
+                    xt1 -=at
+                    xt1 -= self.bounpen*(ax[:2]-1)
 
         if self.t in self.nort: # non-rewarded probe trial
             reward = 0
