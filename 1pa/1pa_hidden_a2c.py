@@ -5,7 +5,7 @@ from backend_scripts.singlepa import singlepa_script
 
 if __name__ == '__main__':
     '''
-    Training an agent with a single nonlinear hidden layer to learn 6PAs using A2C.
+    Training an agent with a single nonlinear hidden layer to learn 1PA using A2C.
     2D state information is passed to place cells and concatenated with cue. 
     Agent has a nonlinear hidden layer whose activity is passed to the actor and critic.
     State is continuous while action is discrete.
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     hp['sparsity'] = 3
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.00005
+    hp['lr'] = 0.0007
     hp['taug'] = 10000
     hp['actalpha'] = 1/4  # to smoothen action taken by agent
     hp['maxspeed'] = 0.07  # step size per 100ms
