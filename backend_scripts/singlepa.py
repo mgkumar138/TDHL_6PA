@@ -25,6 +25,8 @@ def singlepa_script(hp):
 
     if hp['controltype'] == 'reservoir':
         x = pool.map(partial(main_single_res_expt, hp), np.arange(btstp))
+    elif hp['exptname'][:3] == 'A2C':
+        x = pool.map(partial(main_A2C_1pa_expt, hp), np.arange(btstp))
     else:
         x = pool.map(partial(main_single_expt, hp),np.arange(btstp))
 
@@ -377,6 +379,155 @@ def main_single_res_expt(hp,b):
     lat[(tt + et * 5):(tt + et * 6)], mvpath[6], w5dpa, dgr[6] = run_res_single_expt(b, '5dpa', env, hp, agent, alldyn, et,
                                                                                           trw, noreward=nonr)
     lat[(tt + et * 6):], mvpath[7], w6dpa, dgr[7] = run_res_single_expt(b, '6dpa', env, hp, agent, alldyn, et, trw,
+                                                                             noreward=nonr)
+
+    # Summarise weight change of layers
+    for i, k in enumerate([w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa]):
+        for j in np.arange(-2,0):
+            diffw[j, i] = np.sum(abs(k[j] - trw[j])) / np.size(k[j])
+
+    allw = [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa]
+
+    if hp['savevar']:
+        saveload('save', './1pa/Data/vars_{}_{}'.format(exptname, dt.monotonic()),
+                 [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, diffw])
+    if hp['saveweight']:
+        saveload('save', './1pa/Data/weights_{}_{}'.format(exptname, dt.monotonic()),
+                 [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa])
+
+    print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
+
+    return lat, dgr, diffw, mvpath, allw, alldyn
+
+
+''' A2C '''
+def run_A2_1pa_expt(b, mtype, env, hp, agent, alldyn, trials, useweight=None, nocue=None, noreward=None):
+    lat = np.zeros(trials)
+    dgr = []
+    mvpath = np.zeros((3, 6, env.normax, 2))
+
+    env.make(mtype=mtype, nocue=nocue, noreward=noreward)
+
+    if useweight:
+        agent.model.set_weights(useweight)
+
+    for t in range(trials):
+        # Reset environment, actor dynamics
+        state, cue, reward, done = env.reset(trial=t)
+        agent.ac.reset()
+        agent.cri_reset()
+        wtrack = []
+        value = agent.vstate
+        rfr = agent.rstate
+        rho = agent.ac.qstate
+        agent.memory.clear()
+
+        while not done:
+            if env.rendercall:
+                env.render()
+
+            allstate, rfr, rho, value, actsel, action = agent.act(state=state, cue_r_fb=cue)
+
+            # Use action on environment, ds4r: distance from reward
+            state, cue, reward, done, ds4r = env.step(action)
+
+            if reward <= 0 and done:
+                reward = -1 # if reward location not reached, penalise agent
+            elif reward > 0:
+                reward = 1  # once reward location reached, terminate trial
+                done = True
+
+            agent.memory.store(state=allstate, action=actsel,reward=reward)
+
+            # save lsm & actor dynamics for analysis
+            if hp['savevar']:
+                if t in env.nort:
+                    save_rdyn(alldyn[0], mtype, t, env.startpos, env.cue, rfr)
+                    save_rdyn(alldyn[1], mtype, t, env.startpos, env.cue, rho)
+                    save_rdyn(alldyn[2], mtype, t, env.startpos, env.cue, value)
+                    save_rdyn(alldyn[3], mtype, t, env.startpos, env.cue, agent.tderr)
+                else:
+                    wtrack.append([agent.dwc,agent.dwa])
+
+            if done:
+                if t not in env.nort:
+                    agent.replay()
+                break
+
+        # if non-rewarded trial, save entire path trajectory & store visit rate
+        if t in env.nort:
+            lat[t] = np.nan
+            dgr.append(env.dgr)
+            sid = np.argmax(np.array(noreward) == (t // 6) + 1)
+            mvpath[sid, t%6] = env.tracks[:env.normax]
+        else:
+            lat[t] = env.i
+            alldyn[4].append(np.sum(np.array(wtrack), axis=0))
+
+        if hp['platform'] =='laptop' or b==0:
+            # Trial information
+            print('T {} | C {} | S {} | TD {:4.3f} | D {:4.3f} | Dgr {}'.format(
+                t, find_cue(env.cue), env.i // (1000 // env.tstep), agent.loss, ds4r, np.round(dgr)))
+
+    # get mean visit rate
+    if len(noreward) > 1:
+        # training session
+        dgr = np.mean(np.array(dgr).reshape(len(noreward), 6), axis=1)
+    else:
+        # evaluation sessions
+        dgr = np.mean(dgr)
+
+    mdlw = agent.model.get_weights()
+
+    if hp['platform'] == 'server':
+        print('Agent {} {} training dig rate: {}'.format(b, mtype, dgr))
+    return lat, mvpath, mdlw, dgr
+
+
+def main_A2C_1pa_expt(hp,b):
+    import tensorflow as tf
+    from backend_scripts.model import BackpropAgent
+
+    print('Agent {} started training ...'.format(b))
+    exptname = hp['exptname']
+
+    # create environment
+    env = Maze(hp)
+
+    tt = hp['trsess'] * 6  # Number of session X number of trials per session
+    et = hp['evsess'] * 6
+
+    lat = np.zeros(tt + et * 7)
+    dgr = np.zeros([8, 3])
+    diffw = np.zeros([2, 7])  # bt, number of layers, modelcopy
+    nonr = [2, 5, 10]
+    rdyn = {}
+    qdyn = {}
+    cdyn = {}
+    tdyn = {}
+    wtrk = []
+    alldyn = [rdyn, qdyn, cdyn, tdyn, wtrk]
+    mvpath = np.zeros([8, 3, 6, env.normax, 2])
+    tf.compat.v1.reset_default_graph()
+    start = dt.time()
+    agent = BackpropAgent(hp=hp, env=env)
+
+    # Start Training
+    lat[:tt], mvpath[0], trw, dgr[0] = run_A2_1pa_expt(b, '1train', env, hp, agent, alldyn, tt, noreward=nonr)
+
+    # Start Evaluation
+    lat[tt:(tt + et)], mvpath[1], w1pa, dgr[1] = run_A2_1pa_expt(b, '1pa', env, hp, agent, alldyn, et, trw, noreward=nonr)
+    lat[(tt + et):(tt + et * 2)], mvpath[2], w1dpa, dgr[2] = run_A2_1pa_expt(b, '1dpa', env, hp, agent, alldyn, et, trw,
+                                                                                      noreward=nonr)
+    lat[(tt + et * 2):(tt + et * 3)], mvpath[3], w2dpa, dgr[3] = run_A2_1pa_expt(b, '2dpa', env, hp, agent, alldyn, et,
+                                                                                         trw, noreward=nonr)
+    lat[(tt + et * 3):(tt + et * 4)], mvpath[4], w3dpa, dgr[4] = run_A2_1pa_expt(b, '3dpa', env, hp, agent, alldyn, et,
+                                                                                          trw, noreward=nonr)
+    lat[(tt + et * 4):(tt + et * 5)], mvpath[5], w4dpa, dgr[5] = run_A2_1pa_expt(b, '4dpa', env, hp, agent, alldyn, et,
+                                                                                          trw, noreward=nonr)
+    lat[(tt + et * 5):(tt + et * 6)], mvpath[6], w5dpa, dgr[6] = run_A2_1pa_expt(b, '5dpa', env, hp, agent, alldyn, et,
+                                                                                          trw, noreward=nonr)
+    lat[(tt + et * 6):], mvpath[7], w6dpa, dgr[7] = run_A2_1pa_expt(b, '6dpa', env, hp, agent, alldyn, et, trw,
                                                                              noreward=nonr)
 
     # Summarise weight change of layers
