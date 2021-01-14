@@ -174,9 +174,9 @@ class Maze:
 
             if self.i == self.normax:
                 self.done = True
-                if self.mtype == 'train':
+                if self.totr == 6:
                     # visit ratio to correct target compared to other targets
-                    self.dgr = 100 * self.cordig / (self.totdig + 1e-10)
+                    self.dgr = 100 * self.cordig / self.totdig
                 else:
                     # visit ratio at correct target over total time
                     if self.workmem:
@@ -417,7 +417,7 @@ class MultiplePAs:
                     self.totdig += 1
             if self.i == self.normax:
                 self.done = True
-                self.dgr = 100 * self.cordig / (self.totdig + 1e-10)
+                self.dgr = 100 * self.cordig / self.totdig
         elif self.t in self.noct: # non-cued trial
             reward = 0
             if self.i == self.normax:
