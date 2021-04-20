@@ -145,12 +145,13 @@ if __name__ == '__main__':
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
-    hp['trsess'] = 101
-    hp['btstp'] = 1
+    hp['trsess'] = 101  # number of training sessions
+    hp['btstp'] = 1  # number of runs
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = False
     hp['savevar'] = False
-    hp['npa'] = 16  # learn 16 PAs
+    hp['npa'] = 2  # learn 2 - 16 PAs
+    hp['Rval'] = 1  # increase for faster convergence
 
     ''' Hidden parameters '''
     hp['nhid'] = 8192  # number of hidden units ~ Expansion ratio = nhid/67
@@ -165,6 +166,7 @@ if __name__ == '__main__':
     hp['exptname'] = '16pa_{}_{}_{}n_{}ha_{}th_{}k_{}tg_{}lr_{}dt_b{}_{}'.format(
         hp['task'], hp['controltype'], hp['nhid'],hp['hidact'],  hp['sparsity'],hp['K'], hp['taug'],
         hp['lr'], hp['tstep'], hp['btstp'], dt.monotonic())
+    print(hp['exptname'])
 
     totlat, totdgr, totpi, mvpath = main_script(hp)
 
@@ -177,11 +179,11 @@ if __name__ == '__main__':
     ax1.set_xlabel('Latency (s)')
 
     import matplotlib.cm as cm
-    colors = cm.rainbow(np.linspace(0, 1, 16))
+    colors = cm.rainbow(np.linspace(0, 1, hp['npa']))
     env = MultiplePAs(hp)
     env.make(mtype='16PA')
-    for pt in range(16):
-        ax11.plot(mvpath[pt, :, 0], mvpath[pt, :, 1], colors[pt], alpha=0.5)
+    for pt in range(hp['npa']):
+        ax11.plot(mvpath[pt, :, 0], mvpath[pt, :, 1], color=colors[pt], alpha=0.5)
         circle = plt.Circle(env.rlocs[pt], env.rrad, color=colors[pt])
         ax11.add_artist(circle)
     ax11.axis((-env.au / 2, env.au / 2, -env.au / 2, env.au / 2))
