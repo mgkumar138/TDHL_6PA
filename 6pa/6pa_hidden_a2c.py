@@ -12,12 +12,12 @@ if __name__ == '__main__':
     Training of weights is by backpropagation of error signals to determine the gradients.
     Loss function is defined using the Advantage Actor Critic (A2C) algorithm.
     '''
-    hp = get_default_hp(task='6pa',platform='server')
+    hp = get_default_hp(task='6pa',platform='laptop')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat = 100ms ** A2C algorithm tested only at dt = 100ms
     hp['trsess'] = 100
-    hp['btstp'] = 2
+    hp['btstp'] = 1
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     hp['sparsity'] = 3
 
     ''' Other Model parameters '''
-    hp['lr'] = 0.00003
+    hp['lr'] = 0.000035
     hp['taug'] = 10000
     hp['actalpha'] = 1/4  # to smoothen action taken by agent
     hp['maxspeed'] = 0.07  # step size per 100ms

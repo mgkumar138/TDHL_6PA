@@ -6,7 +6,7 @@ from backend_scripts.maze_env import MultiplePAs
 import multiprocessing as mp
 from functools import partial
 
-pithres = 40
+pithres = (100/16)*10
 
 
 def run_multiple_expt(b, mtype, env, hp, agent, sessions, useweight=None, nocue=None, noreward=None):
@@ -148,9 +148,9 @@ if __name__ == '__main__':
     hp['trsess'] = 101  # number of training sessions
     hp['btstp'] = 1  # number of runs
     hp['time'] = 600  # Tmax seconds
-    hp['savefig'] = False
-    hp['savevar'] = False
-    hp['npa'] = 2  # learn 2 - 16 PAs
+    hp['savefig'] = True
+    hp['savevar'] = True
+    hp['npa'] = 16  # learn 2 - 16 PAs
     hp['Rval'] = 1  # increase for faster convergence
 
     ''' Hidden parameters '''
