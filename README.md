@@ -196,11 +196,11 @@ Our agents achieve the following performance for single location task :
 
 - Latency & Time spent at initial and displaced single location by all agents:
 
-![Fig1](https://user-images.githubusercontent.com/35286288/147554386-2db25e37-3b11-4045-b841-13dc0fa58e30.png)
+![Fig1_small](https://user-images.githubusercontent.com/35286288/147554709-1907c093-2548-42ca-9803-0d2da2f05542.png)
 
 Only the Actor Critic with nonlinear hidden layer is able to learn the multiple paired association task :
 
-![Fig3](https://user-images.githubusercontent.com/35286288/147554394-0d314eb5-d6e7-4181-a5b9-da0421f15e95.png)
+![Fig3_small](https://user-images.githubusercontent.com/35286288/147554723-016a6bcf-ed17-4f54-a842-4f4f718eabe7.png)
 
 ## Contributing
 Please cite the relevant work if the code is used for academic purposes.
