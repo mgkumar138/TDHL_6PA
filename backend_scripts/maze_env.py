@@ -224,6 +224,7 @@ def randpos(au):
 
 class run_Rstep():
     def __init__(self,hp):
+        '''continuous reward function'''
         self.rat = 0
         self.rbt = 0
         self.rt = 0
@@ -232,8 +233,8 @@ class run_Rstep():
         self.tstep = hp['tstep']
         self.Rval = hp['Rval']
         self.totR = 0
-        self.fullR = (1 - 1e-4) * self.Rval/self.tstep
-        self.count = False
+        self.done = False
+        assert self.taua > self.tstep and self.taub > self.tstep, 'Reward time constant less than timestep'
 
     def convR(self,rat, rbt):
         rat = (1 - (self.tstep / self.taua)) * rat
@@ -241,18 +242,14 @@ class run_Rstep():
         rt = (rat - rbt) / (self.taua - self.taub)
         return rat, rbt, rt
 
-    def step(self,R):
-        if R>0 and self.count is False:
-            self.fullR = (1-1e-4)*R/self.tstep
-            self.count = True
+    def step(self, R):
         self.rat += R
         self.rbt += R
         self.rat, self.rbt, self.rt = self.convR(self.rat, self.rbt)
-        self.totR += self.rt
-        done = False
-        if self.totR>=self.fullR: # end after fullR reached or max 3 seconds
-            done = True
-        return self.rt, done
+        self.totR += self.rt * self.tstep
+        if self.totR >= self.Rval * 0.9999:  # end after 99.99% of reward attained
+            self.done = True
+        return self.rt, self.done
 
 
 class MultiplePAs:
@@ -429,6 +426,10 @@ class MultiplePAs:
                 R = 1
                 self.stay = True
                 self.sessr +=1
+            elif self.stay:  # once reach reward, R = 0
+                R = 0
+            elif self.stay is False and self.i+1 == self.maxstep:
+                R = 0
 
             reward, self.done = self.runR.step(R)
             if self.i >= self.maxstep:

@@ -2,3 +2,13 @@
 *.pdf
 *.jpg
 *.pickle
+/.idea/
+/1pa/Data/
+/1pa/Fig/
+/6pa/Data/
+/6pa/Fig/
+/16pa/Data/
+/16pa/Fig/
+/wkm/Fig/
+/wkm/Data/
+/Manuscript_Figures/

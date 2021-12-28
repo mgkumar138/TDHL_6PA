@@ -73,9 +73,9 @@ def multiplepa_script(hp):
     plt.tight_layout()
 
     if hp['savefig']:
-        plt.savefig('./Fig/fig_{}.png'.format(exptname))
+        plt.savefig('fig_{}.png'.format(exptname))
     if hp['savegenvar']:
-        saveload('save', './Data/genvars_{}_b{}_{}'.format(exptname, btstp, dt.time()),
+        saveload('save', 'genvars_{}_b{}_{}'.format(exptname, btstp, dt.time()),
                  [totlat, totdgr, totpi])
 
     return totlat, totdgr, totpi, mvpath, trw, alldyn
@@ -109,7 +109,7 @@ def run_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=None,
                 env.render()
 
             # Plasticity switched off when trials are non-rewarded
-            if t in env.nort and t in env.noct:
+            if t in env.nort or t in env.noct:
                 plastic = False
             else:
                 plastic = True
@@ -207,7 +207,7 @@ def main_multiplepa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -244,7 +244,7 @@ def run_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, useweight=
                 env.render()
 
             # Plasticity switched off when trials are non-rewarded
-            if t in env.nort and t in env.noct:
+            if t in env.nort or t in env.noct:
                 plastic = False
             else:
                 plastic = True
@@ -346,7 +346,7 @@ def main_res_multiplepa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_res_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -468,7 +468,7 @@ def main_A2C_6pa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_A2C_6pa_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -508,7 +508,7 @@ def run_wkm_multiple_expt(b,mtype, env, hp, agent, alldyn, sessions, useweight=N
                 env.render()
 
             # Plasticity switched off when trials are non-rewarded
-            if t in env.nort and t in env.noct:
+            if t in env.nort or t in env.noct:
                 plastic = False
             else:
                 plastic = True
@@ -607,7 +607,7 @@ def wkm_multiplepa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_wkm_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -645,7 +645,7 @@ def run_wkm_res_multiple_expt(b, mtype, env, hp, agent, alldyn, sessions, usewei
                 env.render()
 
             # Plasticity switched off when trials are non-rewarded
-            if t in env.nort and t in env.noct:
+            if t in env.nort or t in env.noct:
                 plastic = False
             else:
                 plastic = True
@@ -745,7 +745,7 @@ def wkm_res_multiplepa_expt(hp,b):
     lat, mvpath, trw, dgr, pi = run_wkm_res_multiple_expt(b, 'train',env,hp,agent,alldyn, trsess,noreward=nonrp)
 
     if hp['savevar']:
-        saveload('save', './Data/vars_{}_{}'.format(exptname, dt.time()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.time()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, pi, trw])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))

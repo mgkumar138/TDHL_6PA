@@ -44,7 +44,7 @@ def run_multiple_expt(b, mtype, env, hp, agent, sessions, useweight=None, nocue=
             if reward <= 0 and done:
                 reward = -1 # if reward location not reached, penalise agent
             elif reward > 0:
-                reward = 1  # once reward location reached, terminate trial
+                reward = hp['Rval']  # once reward location reached, terminate trial
                 done = True
 
             agent.memory.store(state=allstate, action=actsel,reward=reward)
@@ -134,12 +134,12 @@ def main_script(hp):
 
 if __name__ == '__main__':
 
-    hp = get_default_hp(task='6pa', platform='laptop')
+    hp = get_default_hp(task='6pa', platform='server')
 
     hp['controltype'] = 'hidden'  # expand, hidden, classic
     hp['tstep'] = 100  # deltat
     hp['trsess'] = 101
-    hp['btstp'] = 1
+    hp['btstp'] = 4
     hp['time'] = 600  # Tmax seconds
     hp['savefig'] = True
     hp['savevar'] = False
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     hp['hidact'] = 'phia'  # phiA, phiB, relu, etc
     hp['sparsity'] = 3  # Threshold
     hp['K'] = None  # Number of positive connections from all inputs (67) to each hidden unit
-    hp['taug'] = 10000    # TD error time constant
+    hp['Rval'] = 1  # increase for faster convergence
+    hp['taug'] = 5000    # TD error time constant
 
     ''' Other Model parameters '''
     hp['lr'] = 0.000035

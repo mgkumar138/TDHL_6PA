@@ -71,9 +71,9 @@ def singlepa_script(hp):
         plt.axis((-env.au / 2, env.au / 2, -env.au / 2, env.au / 2))
 
     if hp['savefig']:
-        plt.savefig('./Fig/fig_{}.png'.format(exptname))
+        plt.savefig('fig_{}.png'.format(exptname))
     if hp['savegenvar']:
-        saveload('save', './Data/genvars_{}_b{}_{}'.format(exptname,btstp, dt.monotonic()), [totlat, totdgr, diffw])
+        saveload('save', 'genvars_{}_b{}_{}'.format(exptname,btstp, dt.monotonic()), [totlat, totdgr, diffw])
     print(exptname)
 
     plt.tight_layout()
@@ -228,10 +228,10 @@ def main_single_expt(hp,b):
     allw = [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa]
 
     if hp['savevar']:
-        saveload('save', './1pa/Data/vars_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.monotonic()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, diffw])
     if hp['saveweight']:
-        saveload('save', './1pa/Data/weights_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'weights_{}_{}'.format(exptname, dt.monotonic()),
                  [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -389,10 +389,10 @@ def main_single_res_expt(hp,b):
     allw = [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa]
 
     if hp['savevar']:
-        saveload('save', './1pa/Data/vars_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.monotonic()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, diffw])
     if hp['saveweight']:
-        saveload('save', './1pa/Data/weights_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'weights_{}_{}'.format(exptname, dt.monotonic()),
                  [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))
@@ -538,10 +538,10 @@ def main_A2C_1pa_expt(hp,b):
     allw = [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa]
 
     if hp['savevar']:
-        saveload('save', './1pa/Data/vars_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'vars_{}_{}'.format(exptname, dt.monotonic()),
                  [rdyn, qdyn, cdyn, tdyn, wtrk, mvpath, lat, dgr, diffw])
     if hp['saveweight']:
-        saveload('save', './1pa/Data/weights_{}_{}'.format(exptname, dt.monotonic()),
+        saveload('save', 'weights_{}_{}'.format(exptname, dt.monotonic()),
                  [trw, w1pa, w1dpa, w2dpa, w3dpa, w4dpa, w5dpa, w6dpa])
 
     print('---------------- Agent {} done in {:3.2f} min ---------------'.format(b, (dt.time() - start) / 60))

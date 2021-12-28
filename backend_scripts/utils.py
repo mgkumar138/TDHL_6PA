@@ -99,14 +99,14 @@ def plot_dgr(dgr,scl, pltidx, patype):
             ax.text(p.get_x(),  p.get_height()*1.05, '*', size=15)
 
 
-def plot_maps(alldyn,mvpath, hp, pltidx):
+def plot_maps(alldyn,mvpath, hp, pltidx, npa=6):
     qdyn = alldyn[1]
     cdyn = alldyn[2]
     nonrlen = 600
     bins = 15
-    qfr = np.zeros([6, nonrlen, 40])
-    cfr = np.zeros([6, nonrlen, 1])
-    coord = np.zeros([nonrlen * 6, 2])
+    qfr = np.zeros([npa, nonrlen, 40])
+    cfr = np.zeros([npa, nonrlen, 1])
+    coord = np.zeros([nonrlen * npa, 2])
     policy = np.zeros([2, bins, bins])
     newx = np.zeros([225,2])
     for i in range(15):
@@ -124,8 +124,8 @@ def plot_maps(alldyn,mvpath, hp, pltidx):
         qfr[c - 1] = np.array(qdyn[s])[-nonrlen:]
         cfr[c - 1] = np.array(cdyn[s])[-nonrlen:]
 
-    qfr = np.reshape(qfr, newshape=(6 * nonrlen, 40))
-    cfr = np.reshape(cfr, newshape=(6 * nonrlen, 1))
+    qfr = np.reshape(qfr, newshape=(npa * nonrlen, 40))
+    cfr = np.reshape(cfr, newshape=(npa * nonrlen, 1))
 
     for i, s in enumerate(sess):
         st = i * nonrlen
@@ -289,12 +289,12 @@ def get_default_hp(task, platform='laptop'):
     }
 
     if hp['platform'] == 'laptop':
-        matplotlib.use('Qt5Agg')
+        matplotlib.use('tKAgg')
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
         hp['cpucount'] = 1
     elif hp['platform'] == 'server':
-        matplotlib.use('Agg')
-        hp['cpucount'] = mp.cpu_count()
+        matplotlib.use('tKAgg')
+        hp['cpucount'] = 3 #mp.cpu_count()
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     elif hp['platform'] == 'gpu':
         #print(tf.config.list_physical_devices('GPU'))
