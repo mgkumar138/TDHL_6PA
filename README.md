@@ -9,7 +9,7 @@ The main result of the paper is to demonstrate the gradual learning and navigati
 - Single targets - 1pa*
 - Six cue-targets - 6pa*    
 - 16 cue-targets - 16pa*
-- Siz cue-targets with cue given only at the start of the trial - wkm*
+- Six cue-targets with cue given only at the start of the trial - wkm*
 
 and ends with the following nomenclature:
 - Classical Actor Critic with no plasticity (No Plasticity) - *control
@@ -165,7 +165,7 @@ python wkm_res_bump.py
 ## Training details
 
 Since the outcome of the paper is to demonstrate gradual learning of multiple paired associations, there are no pretrained agents. The learning potential of each agent can be observed by running the respective scripts.
-Training for each agent takes about 1 hour for both single and multiple paired association task.
+Training for each agent takes about 1 hour for both single and multiple paired association task. Training time for the Reservoir agent could be reduced with a GPU. 
 
 General agent hyperparameters can be found in get_default_hp function in ./backend_scripts/utils.py. Specific hyperparameters can be found in each *.py script.
 
