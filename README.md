@@ -194,23 +194,12 @@ Each code generates a figure that is saved to the working directory.
 
 Our agents achieve the following performance for single location task :
 
-- Latency reached by all agents:
-
-![Latency_1pa](https://user-images.githubusercontent.com/35286288/120445898-a76a6300-c3bb-11eb-8dd8-50068163b657.png)
-
-- Time spent at each location during probe trials:
-
-![Dgr_1pa](https://user-images.githubusercontent.com/35286288/120445926-ad604400-c3bb-11eb-9add-251cd5e2fbdb.png)
+- Latency & Time spent at initial and displaced single location by all agents:
 
 
-Our agents achieve the following performance when learning multiple paired assocationn task :
-- Latency reached by all agents:
 
-![Latency_6pa](https://user-images.githubusercontent.com/35286288/120445947-b224f800-c3bb-11eb-88a8-239e2e325099.png)
+Only the Actor Critic with nonlinear hidden layer is able to learn the multiple paired association task :
 
-- Average visit ratio at during each probe session:
-
-![Dgr_train_6pa](https://user-images.githubusercontent.com/35286288/120445966-b94c0600-c3bb-11eb-9c6c-6a676cf70c4d.png)
 
 
 ## Contributing
