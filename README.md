@@ -198,7 +198,7 @@ Our agents achieve the following performance for single location task :
 
 ![Fig1_small](https://user-images.githubusercontent.com/35286288/147554709-1907c093-2548-42ca-9803-0d2da2f05542.png)
 
-Only the Actor Critic with nonlinear hidden layer is able to learn the multiple paired association task :
+- Only the Actor Critic with nonlinear hidden layer is able to learn the multiple paired association task :
 
 ![Fig3_small](https://user-images.githubusercontent.com/35286288/147554723-016a6bcf-ed17-4f54-a842-4f4f718eabe7.png)
 
