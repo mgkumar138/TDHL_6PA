@@ -1,25 +1,9 @@
-# TDHL_6PA
-Training classical agents and agents with a single hidden layer to learn 6 paired associations in a navigationt task with sparse rewards
-Agents are trained using Temporal Difference Error modulated Hebbian Plascticity
-
-Run 6pa_classic.py or 6pa_hidden.py to start the 6PA navigation task with the relevant agents.
-
-Other scripts include:
-  - 1pa_{} trains the agent to learn single reward locations
-  - 6pa_{} trains the agent to learn 6PAs with cues presented throughout the trial
-  - wkm_{} trains the agent with a bump attractor to learn 6PAs with transient cues presented
-  - 16pa_{} trains the agent with hidden layer to learn 16 PAs with different hyperparameter conditions
-  - 6pa_hidden_a2c.py is the agent with a single nonlinear hidden layer and discrete actions trained by Advantage Actor Critic (A2C)
-
-
 # A Nonlinear Hidden Layer Enables Actor–Critic Agents to Learn Multiple Paired Association Navigation
 
-This repository contains the  
-- Code to obtain the results described in the paper https://arxiv.org/abs/2106.13541
+This repository contains the code to obtain the results described in the paper (https://arxiv.org/abs/2106.13541).
       
 The main result of the paper is to demonstrate the gradual learning and navigation to single and multiple cued locations
  using an Actor-Critic agent trained by temporal difference error modulated Hebbian plasticity.
-
 
 9 agents were evaluated in four tasks and script begins with the task type with the follwing nomenclature:
 - Single targets - 1pa*
